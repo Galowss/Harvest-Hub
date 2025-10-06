@@ -129,20 +129,6 @@ export default function OrdersPage() {
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    try {
-      await updateDoc(doc(db, "orders", orderId), { status: newStatus });
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus } : order
-        )
-      );
-    } catch (err) {
-      alert("You do not have permission to change this order status.");
-      console.error(err);
-    }
-  };
-
   const handleCancelOrder = async (orderId: string, order: Order) => {
     if (order.status !== "pending" && order.status !== "Pending") {
       alert("Only pending orders can be cancelled.");
