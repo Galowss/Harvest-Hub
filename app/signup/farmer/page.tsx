@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "../config/firebase";
+import { auth, db } from "../../config/firebase";
 import { doc, setDoc } from "firebase/firestore";
 
-export default function SignUpUser() {
+export default function SignUpFarmer() {
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [contact, setContact] = useState("");
@@ -29,10 +29,10 @@ export default function SignUpUser() {
         location,
         contact,
         email,
-        role: "user",
+        role: "farmer",
       });
 
-      alert("User account created successfully!");
+      alert("Farmer account created successfully!");
     } catch (error: any) {
       alert(error.message);
     }
@@ -41,7 +41,7 @@ export default function SignUpUser() {
   return (
     <main className="flex items-center justify-center h-screen bg-gray-100 px-4 sm:px-6 lg:px-8">
       <form onSubmit={handleSignUp} className="bg-white p-6 sm:p-8 rounded shadow-md w-full max-w-sm sm:max-w-md">
-        <h1 className="text-lg sm:text-xl font-bold mb-4">Sign Up as User</h1>
+        <h1 className="text-lg sm:text-xl font-bold mb-4">Sign Up as Farmer</h1>
 
         <input
           type="text"
@@ -91,17 +91,17 @@ export default function SignUpUser() {
           onChange={(e) => setConfirm(e.target.value)}
         />
 
-        <button className="w-full bg-blue-600 text-white p-2 rounded text-sm sm:text-base transition-colors hover:bg-blue-700">Sign Up</button>
+        <button className="w-full bg-green-600 text-white p-2 rounded text-sm sm:text-base transition-colors hover:bg-green-700">Sign Up</button>
 
         <p className="text-xs sm:text-sm text-center mt-3">
-          Want to be a farmer?{" "}
-          <Link href="/signup/farmer" className="text-green-600 underline">
-            Sign Up as Farmer
+          Want to be a normal user?{" "}
+          <Link href="/signup" className="text-blue-600 underline">
+            Sign Up as User
           </Link>
         </p>
 
         <p className="text-xs sm:text-sm text-center mt-3">
-          Already have an account?{" "}
+          Already have a farmer account?{" "}
           <Link href="/login" className="text-green-600 underline">
             Login
           </Link>

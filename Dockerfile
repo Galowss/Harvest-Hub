@@ -12,6 +12,7 @@ COPY . .
 RUN npm run build
 
 # Step 3: Run the app in production
+
 FROM node:22-alpine AS runner
 WORKDIR /app
 
