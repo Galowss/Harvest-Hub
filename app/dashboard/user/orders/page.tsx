@@ -4,15 +4,38 @@ import { useEffect, useState } from "react";
 import { auth, db } from "../../../config/firebase";
 import { collection, query, where, getDocs, doc, updateDoc, addDoc, getDoc, runTransaction } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import ProductImage from '@/components/ProductImage';
+import Link from "next/link";
 import { useLogout } from "@/hooks/useLogout";
 
+interface User {
+  id: string;
+  email: string | null;
+}
+
+interface Order {
+  id: string;
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  status: string;
+  reviewed?: boolean;
+  productImage?: string;
+  buyerId: string;
+  [key: string]: unknown; // Allow additional properties
+}
+
+interface ReviewModalState {
+  isOpen: boolean;
+  order: Order | null;
+}
+
 export default function OrdersPage() {
-  const [user, setUser] = useState<any>(null);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [reviewModal, setReviewModal] = useState<{ isOpen: boolean; order: any | null }>({ isOpen: false, order: null });
+  const [reviewModal, setReviewModal] = useState<ReviewModalState>({ isOpen: false, order: null });
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
   const { handleLogout } = useLogout();
@@ -94,7 +117,7 @@ export default function OrdersPage() {
             ...orderData,
             productImage,
             name: productName,
-          };
+          } as Order;
         })
       );
       
@@ -120,7 +143,7 @@ export default function OrdersPage() {
     }
   };
 
-  const handleCancelOrder = async (orderId: string, order: any) => {
+  const handleCancelOrder = async (orderId: string, order: Order) => {
     if (order.status !== "pending" && order.status !== "Pending") {
       alert("Only pending orders can be cancelled.");
       return;
@@ -169,7 +192,7 @@ export default function OrdersPage() {
     }
   };
 
-  const handleOpenReviewModal = (order: any) => {
+  const handleOpenReviewModal = (order: Order) => {
     setReviewModal({ isOpen: true, order });
     setReviewData({ rating: 5, comment: '' });
   };
@@ -216,7 +239,7 @@ export default function OrdersPage() {
 
       // Update local orders state
       setOrders(prev => prev.map(order => 
-        order.id === reviewModal.order.id 
+        order.id === reviewModal.order?.id 
           ? { ...order, reviewed: true }
           : order
       ));
@@ -228,71 +251,6 @@ export default function OrdersPage() {
       alert("Failed to submit review. Please try again.");
     } finally {
       setSubmittingReview(false);
-    }
-  };
-
-  // Example: Add this to your order creation logic (e.g., in your product details or cart page)
-  interface OrderData {
-    productId: string;
-    name: string;
-    price: number;
-    quantity: number;
-    // Add other fields as needed
-  }
-
-  const createOrder = async (orderData: any) => {
-    try {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      // Reference to the product document
-      const productRef = doc(db, "products", orderData.productId);
-
-      // Run the order creation and quantity update in a transaction
-      await runTransaction(db, async (transaction) => {
-        const productSnap = await transaction.get(productRef);
-        
-        if (!productSnap.exists()) {
-          throw new Error("Product not found");
-        }
-
-        const productData = productSnap.data();
-        const currentQuantity = productData.quantity;
-
-        // Check if enough stock is available
-        if (currentQuantity < orderData.quantity) {
-          throw new Error(`Not enough stock available. Only ${currentQuantity} items left.`);
-        }
-
-        // Calculate new quantity
-        const newQuantity = currentQuantity - orderData.quantity;
-
-        // Update product quantity
-        transaction.update(productRef, {
-          quantity: newQuantity
-        });
-
-        // Create the order
-        const orderRef = doc(collection(db, "orders"));
-        transaction.set(orderRef, {
-          ...orderData,
-          buyerId: user.uid,
-          photo: (productData.images && productData.images.length > 0) ? productData.images[0] : '',
-          status: "pending",
-          createdAt: new Date(),
-          originalQuantity: currentQuantity,
-          newQuantity: newQuantity
-        });
-      });
-
-      console.log("Order created and product quantity updated successfully");
-
-    } catch (error) {
-      console.error("Error creating order:", error);
-      if (error instanceof Error) {
-        alert(error.message);
-      }
-      throw error;
     }
   };
 
@@ -310,21 +268,21 @@ export default function OrdersPage() {
       <aside className="w-full lg:w-64 bg-white shadow-md p-4 lg:h-screen overflow-y-auto">
         <h2 className="text-lg sm:text-xl font-bold mb-4 lg:mb-6">HarvestHub</h2>
         <nav className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2 overflow-x-auto lg:overflow-x-visible">
-          <a href="/dashboard/user" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+          <Link href="/dashboard/user" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Homepage
-          </a>
-          <a href="/dashboard/user/cart" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+          </Link>
+          <Link href="/dashboard/user/cart" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Cart
-          </a>
-          <a href="/dashboard/user/orders" className="block px-3 py-2 rounded bg-green-50 hover:bg-green-100 font-semibold whitespace-nowrap text-sm lg:text-base">
+          </Link>
+          <Link href="/dashboard/user/orders" className="block px-3 py-2 rounded bg-green-50 hover:bg-green-100 font-semibold whitespace-nowrap text-sm lg:text-base">
             Orders
-          </a>
-          <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+          </Link>
+          <Link href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Rate Farmer
-          </a>
-          <a href="/dashboard/user/profile" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+          </Link>
+          <Link href="/dashboard/user/profile" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Profile
-          </a>
+          </Link>
         </nav>
         
         {/* Logout Button */}

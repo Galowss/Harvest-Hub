@@ -33,7 +33,7 @@ export default function FarmerDashboard() {
   const [uploadProgress, setUploadProgress] = useState('');
   const [skipCompression, setSkipCompression] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
@@ -168,7 +168,7 @@ export default function FarmerDashboard() {
       .then(res => res.blob())
       .then(blob => {
         const file = new File([blob], `captured-photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
-        setNewProduct((prev: any) => ({
+        setNewProduct((prev: NewProduct) => ({
           ...prev,
           images: [...prev.images, file]
         }));
@@ -536,7 +536,7 @@ export default function FarmerDashboard() {
   };
 
   // Edit product
-  const handleEditProduct = (product: any) => {
+  const handleEditProduct = (product: Product) => {
     setEditingProduct({
       id: product.id,
       name: product.name || '',
