@@ -68,28 +68,17 @@ export default function UserDashboard() {
       }));
       
       // Filter only products with stock > 0 (available produce)
-      const availableProducts = allProductsData.filter((product: any) => {
+      const availableProducts = allProductsData.filter(product => {
         const stock = product.stock || product.quantity || 0;
         return stock > 0;
       });
       
-      // Log a sample product to check image structure
-      if (availableProducts.length > 0) {
-        const sampleProduct = availableProducts[0] as any;
-        console.log('📸 Sample product with images:', {
-          name: sampleProduct.name,
-          hasImages: !!sampleProduct.images,
-          imageCount: sampleProduct.images?.length || 0,
-          firstImagePreview: sampleProduct.images?.[0]?.substring(0, 50) + '...'
-        });
-      }
-      
       // Sort by creation date (newest first) and then by stock (highest first)
-      availableProducts.sort((a: any, b: any) => {
+      availableProducts.sort((a, b) => {
         // First sort by creation date
         const dateA = a.createdAt?.toDate?.() || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(0);
-        const dateComparison = dateB.getTime() - dateA.getTime();
+        const dateComparison = dateB - dateA;
         
         if (dateComparison !== 0) return dateComparison;
         
@@ -148,9 +137,6 @@ export default function UserDashboard() {
   const handleRefresh = async () => {
     await fetchProducts();
   };
-
-  // ✅ View details & open dialog
-  const handleViewDetails = async (product: any) => {
     console.log("🟢 Opening details for product:", product);
     setSelectedProduct(product);
     setDialogOpen(true);
@@ -171,7 +157,7 @@ export default function UserDashboard() {
         name: product.name,
         price: product.price,
         quantity: 1,
-        photo: (product.images && product.images.length > 0) ? product.images[0] : "",
+        photo: product.photo || "",
         farmerId: product.farmerId || "",
         createdAt: new Date(),
       });
@@ -236,9 +222,6 @@ export default function UserDashboard() {
           </a>
           <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Rate Farmer
-          </a>
-          <a href="/dashboard/user/profile" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Profile
           </a>
         </nav>
         
@@ -384,22 +367,13 @@ export default function UserDashboard() {
                   <div key={product.id} className="bg-white p-3 lg:p-4 shadow rounded hover:shadow-lg transition-shadow">
                     <div className="relative">
                       <div
-                        className="h-24 sm:h-32 bg-gray-200 mb-3 rounded flex items-center justify-center"
+                        className="h-24 sm:h-32 bg-gray-200 mb-3 rounded"
                         style={{
-                          backgroundImage: product.images && product.images.length > 0 ? `url(${product.images[0]})` : 'none',
+                          backgroundImage: `url(${product.photo})`,
                           backgroundSize: "cover",
                           backgroundPosition: "center",
                         }}
-                      >
-                        {(!product.images || product.images.length === 0) && (
-                          <div className="text-gray-400 text-center">
-                            <svg className="w-8 h-8 mx-auto mb-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                            </svg>
-                            <span className="text-xs">No Image</span>
-                          </div>
-                        )}
-                      </div>
+                      ></div>
                       
                       {/* Stock Indicator */}
                       <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium ${

@@ -1,24 +1,92 @@
 import Image from 'next/image';
+import { formatDate } from '@/lib/dateUtils';
+import { useEffect, useState } from 'react';
 
 export default function OrderCard({ order }: { order: any }) {
-  return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <div className="h-40 bg-gray-100 rounded-lg mb-4 overflow-hidden relative">
-        {order.photo ? (
-          <Image
-            src={order.photo}
-            alt={order.name}
-            fill
-            className="object-cover"
-            unoptimized // Add this if dealing with external URLs
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
-            No Photo
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return (
+      <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden animate-pulse">
+        <div className="p-4 sm:p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            <div className="flex-shrink-0">
+              <div className="h-32 sm:h-40 lg:h-24 lg:w-24 bg-gray-200 rounded-lg"></div>
+            </div>
+            <div className="flex-grow space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
-      {/* Rest of your order card content */}
+    );
+  }
+  return (
+    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          {/* Product Image */}
+          <div className="flex-shrink-0">
+            <div className="h-32 sm:h-40 lg:h-24 lg:w-24 bg-gray-100 rounded-lg overflow-hidden relative">
+              {order.photo ? (
+                <Image
+                  src={order.photo}
+                  alt={order.name}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs sm:text-sm">
+                  No Photo
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Order Details */}
+          <div className="flex-grow space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
+                {order.productName || order.name}
+              </h3>
+              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
+                order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                order.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                order.status === 'completed' ? 'bg-blue-100 text-blue-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {order.status}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm sm:text-base text-gray-600">
+              <p><span className="font-medium">Order ID:</span> {order.id}</p>
+              <p><span className="font-medium">Price:</span> ₱{order.price}</p>
+              <p><span className="font-medium">Quantity:</span> {order.quantity}</p>
+              <p><span className="font-medium">Date:</span> {formatDate(order.createdAt)}</p>
+            </div>
+
+            {order.buyerEmail && (
+              <p className="text-sm sm:text-base text-gray-600">
+                <span className="font-medium">Buyer:</span> {order.buyerEmail}
+              </p>
+            )}
+
+            {order.farmerEmail && (
+              <p className="text-sm sm:text-base text-gray-600">
+                <span className="font-medium">Farmer:</span> {order.farmerEmail}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

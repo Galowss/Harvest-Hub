@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { auth, db } from "../../../config/firebase";
+import { useLogout } from "@/hooks/useLogout";
 import {
   collection,
   query,
@@ -17,7 +18,9 @@ import { useRouter } from "next/navigation";
 export default function CartPage() {
   const [user, setUser] = useState<any>(null);
   const [cartItems, setCartItems] = useState<any[]>([]);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const { handleLogout } = useLogout();
   const router = useRouter();
 
   useEffect(() => {
@@ -55,10 +58,48 @@ export default function CartPage() {
     }
   };
 
+  // Toggle item selection
+  const toggleItemSelection = (itemId: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  // Select all items
+  const selectAllItems = () => {
+    const allItemIds = new Set(cartItems.map(item => item.id));
+    setSelectedItems(allItemIds);
+  };
+
+  // Deselect all items
+  const deselectAllItems = () => {
+    setSelectedItems(new Set());
+  };
+
+  // Get selected cart items
+  const getSelectedCartItems = () => {
+    return cartItems.filter(item => selectedItems.has(item.id));
+  };
+
+  // Calculate total for selected items
+  const calculateSelectedTotal = () => {
+    return getSelectedCartItems().reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+  };
+
   const handleRemoveFromCart = async (itemId: string) => {
     try {
       await deleteDoc(doc(db, "cart", itemId));
       setCartItems(cartItems.filter((p) => p.id !== itemId));
+      // Remove from selection if it was selected
+      const newSelected = new Set(selectedItems);
+      newSelected.delete(itemId);
+      setSelectedItems(newSelected);
     } catch (err) {
       console.error("Error removing item:", err);
     }
@@ -126,6 +167,11 @@ export default function CartPage() {
       await deleteDoc(doc(db, "cart", item.id));
       setCartItems(cartItems.filter((p) => p.id !== item.id));
 
+      // Remove from selection if it was selected
+      const newSelected = new Set(selectedItems);
+      newSelected.delete(item.id);
+      setSelectedItems(newSelected);
+
       alert("Order placed successfully!");
     } catch (err: any) {
       console.error("Error creating order:", err);
@@ -134,8 +180,15 @@ export default function CartPage() {
   };
 
   const handleCheckout = async () => {
+    const selectedCartItems = getSelectedCartItems();
+    
+    if (selectedCartItems.length === 0) {
+      alert("Please select at least one item to checkout.");
+      return;
+    }
+
     try {
-      for (const item of cartItems) {
+      for (const item of selectedCartItems) {
         // Check product availability before proceeding
         const productRef = doc(db, "products", item.productId);
         const productSnap = await getDoc(productRef);
@@ -149,8 +202,8 @@ export default function CartPage() {
         }
       }
 
-      // Proceed with order creation
-      for (const item of cartItems) {
+      // Proceed with order creation for selected items
+      for (const item of selectedCartItems) {
         await addDoc(collection(db, "orders"), {
           buyerId: user.id, // match Firestore rules
           farmerId: item.farmerId || "", // optional
@@ -164,13 +217,16 @@ export default function CartPage() {
         });
       }
 
-      // Clear cart after successful checkout
-      for (const item of cartItems) {
+      // Remove only selected items from cart after successful checkout
+      for (const item of selectedCartItems) {
         await deleteDoc(doc(db, "cart", item.id));
       }
-      setCartItems([]);
+      
+      // Update cart items and clear selection
+      setCartItems(cartItems.filter(item => !selectedItems.has(item.id)));
+      setSelectedItems(new Set());
 
-      alert("Checkout successful! Your order is being processed.");
+      alert(`Checkout successful! ${selectedCartItems.length} item(s) ordered.`);
     } catch (error) {
       if (error instanceof Error) {
         alert(error.message);
@@ -196,9 +252,23 @@ export default function CartPage() {
         <nav className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2 overflow-x-auto lg:overflow-x-visible">
           <a href="/dashboard/user" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">Homepage</a>
           <a href="/dashboard/user/cart" className="block px-3 py-2 rounded hover:bg-green-100 bg-green-50 font-semibold whitespace-nowrap text-sm lg:text-base">Cart</a>
-          <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">Rate Farmer</a>
           <a href="/dashboard/user/orders" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">Orders</a>
+          <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">Rate Farmer</a>
+          <a href="/dashboard/user/profile" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">Profile</a>
         </nav>
+        
+        {/* Logout Button */}
+        <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-200">
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Logout</span>
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -213,49 +283,141 @@ export default function CartPage() {
             Your cart is empty.
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-            {cartItems.map((item) => (
-              <div key={item.id} className="bg-white p-3 lg:p-4 shadow rounded">
-                <div
-                  className="h-24 sm:h-32 bg-gray-200 mb-3 rounded flex items-center justify-center"
-                  style={{
-                    backgroundImage: `url(${item.photo})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                >
-                  {!item.photo && <span className="text-xs lg:text-sm text-gray-500">No Photo</span>}
+          <>
+            {/* Selection Header */}
+            <div className="bg-white p-4 rounded-lg shadow mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={selectedItems.size === cartItems.length ? deselectAllItems : selectAllItems}
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        selectedItems.size === cartItems.length
+                          ? 'bg-green-600 border-green-600 text-white'
+                          : selectedItems.size > 0
+                          ? 'bg-green-200 border-green-600 text-green-600'
+                          : 'border-gray-300 hover:border-green-400'
+                      }`}
+                    >
+                      {selectedItems.size === cartItems.length ? (
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      ) : selectedItems.size > 0 ? (
+                        <div className="w-2 h-2 bg-current rounded-full"></div>
+                      ) : null}
+                    </button>
+                    <span className="text-sm font-medium">
+                      {selectedItems.size === cartItems.length
+                        ? 'Deselect All'
+                        : 'Select All'}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {selectedItems.size} of {cartItems.length} selected
+                  </div>
                 </div>
-                <h3 className="font-bold text-sm lg:text-base">{item.name}</h3>
-                <p className="text-xs lg:text-sm text-gray-500">Price: {item.price}</p>
-                <p className="text-xs lg:text-sm text-gray-500">Qty: {item.quantity}</p>
-                <div className="flex flex-col sm:flex-row justify-between mt-3 gap-2">
-                  <button
-                    onClick={() => handleOrderNow(item)}
-                    className="text-xs lg:text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                  >
-                    Order Now
-                  </button>
-                  <button
-                    onClick={() => handleRemoveFromCart(item.id)}
-                    className="text-xs lg:text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                  >
-                    Remove
-                  </button>
-                </div>
+                {selectedItems.size > 0 && (
+                  <div className="text-right">
+                    <div className="text-sm text-gray-600">Selected Total:</div>
+                    <div className="text-lg font-bold text-green-600">
+                      ₱{calculateSelectedTotal().toFixed(2)}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+              {cartItems.map((item) => (
+                <div key={item.id} className="bg-white p-3 lg:p-4 shadow rounded relative">
+                  {/* Selection Circle */}
+                  <div 
+                    className="absolute top-2 right-2 cursor-pointer"
+                    onClick={() => toggleItemSelection(item.id)}
+                  >
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      selectedItems.has(item.id) 
+                        ? 'bg-blue-600 border-blue-600' 
+                        : 'bg-white border-gray-300'
+                    }`}>
+                      {selectedItems.has(item.id) && (
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    className="h-24 sm:h-32 bg-gray-200 mb-3 rounded flex items-center justify-center"
+                    style={{
+                      backgroundImage: `url(${item.photo})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  >
+                    {!item.photo && <span className="text-xs lg:text-sm text-gray-500">No Photo</span>}
+                  </div>
+                  <h3 className="font-bold text-sm lg:text-base">{item.name}</h3>
+                  <p className="text-xs lg:text-sm text-gray-500">Price: {item.price}</p>
+                  <p className="text-xs lg:text-sm text-gray-500">Qty: {item.quantity}</p>
+                  <div className="flex flex-col sm:flex-row justify-between mt-3 gap-2">
+                    <button
+                      onClick={() => handleOrderNow(item)}
+                      className="text-xs lg:text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                    >
+                      Order Now
+                    </button>
+                    <button
+                      onClick={() => handleRemoveFromCart(item.id)}
+                      className="text-xs lg:text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {cartItems.length > 0 && (
-          <div className="mt-6">
-            <button
-              onClick={handleCheckout}
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition"
-            >
-              Checkout
-            </button>
+          <div className="mt-6 space-y-4">
+            {/* Checkout Selected Items */}
+            {selectedItems.size > 0 && (
+              <div className="bg-white p-4 rounded-lg shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-lg font-bold">Checkout Selected Items</h3>
+                    <p className="text-sm text-gray-600">{selectedItems.size} item(s) selected</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-bold text-green-600">
+                      ₱{calculateSelectedTotal().toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCheckout}
+                  className="w-full bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 transition"
+                >
+                  Checkout Selected Items
+                </button>
+              </div>
+            )}
+            
+            {/* Checkout All Items (if no items selected) */}
+            {selectedItems.size === 0 && (
+              <div className="bg-white p-4 rounded-lg shadow">
+                <button
+                  onClick={handleCheckout}
+                  className="w-full bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition"
+                >
+                  Checkout All Items
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>

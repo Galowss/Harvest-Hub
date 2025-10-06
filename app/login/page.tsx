@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { auth, db } from "../config/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation";
@@ -10,12 +10,34 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+    
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Check if email is verified
+      if (!userCredential.user.emailVerified) {
+        setError("Please verify your email before logging in. Check your inbox for a verification email.");
+        
+        // Optionally offer to resend verification email
+        const resend = confirm("Would you like us to resend the verification email?");
+        if (resend) {
+          await sendEmailVerification(userCredential.user);
+          setError("Verification email sent! Please check your inbox and verify your email before logging in.");
+        }
+        
+        // Sign out the user since they're not verified
+        await auth.signOut();
+        setLoading(false);
+        return;
+      }
+
       const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
 
       if (userDoc.exists()) {
@@ -32,6 +54,8 @@ export default function Login() {
       }
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,9 +91,10 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 text-sm sm:text-base transition-colors"
+            disabled={loading}
+            className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base transition-colors"
           >
-            Login
+            {loading ? "Signing In..." : "Login"}
           </button>
         </form>
 

@@ -10,11 +10,13 @@ import {
   getDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { useLogout } from "@/hooks/useLogout";
 
 export default function RateSpecificFarmer() {
   const params = useParams();
   const farmerId = params?.farmerId as string;
   const router = useRouter();
+  const { handleLogout } = useLogout();
 
   const [farmer, setFarmer] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
@@ -97,26 +99,39 @@ export default function RateSpecificFarmer() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-md p-4">
-        <h2 className="text-xl font-bold mb-6">HarvestHub</h2>
-        <nav className="space-y-2">
-          <a href="/dashboard/user" className="block px-3 py-2 rounded hover:bg-green-100">
-            Homepage
-          </a>
-          <a href="/dashboard/user/orders" className="block px-3 py-2 rounded hover:bg-green-100">
-            Orders
-          </a>
-          <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100">
-            Rate Farmer
-          </a>
+      <aside className="w-full lg:w-64 bg-white shadow-md p-4 lg:h-screen overflow-y-auto">
+        <h2 className="text-lg sm:text-xl font-bold mb-4 lg:mb-6">HarvestHub</h2>
+        <nav className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2 overflow-x-auto lg:overflow-x-visible">
+          <a href="/dashboard/user" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">Homepage</a>
+          <a href="/dashboard/user/cart" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">Cart</a>
+          <a href="/dashboard/user/orders" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">Orders</a>
+          <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 bg-green-50 font-semibold whitespace-nowrap text-sm lg:text-base">Rate Farmer</a>
+          <a href="/dashboard/user/profile" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">Profile</a>
         </nav>
+        
+        {/* Logout Button */}
+        <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-200">
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013-3v1" />
+            </svg>
+            <span>Logout</span>
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-1 p-6 overflow-y-auto">
-        <h1 className="text-2xl font-bold mb-4">
-          Rate {farmer.name || "Unnamed Farmer"}
-        </h1>
+        {/* Header */}
+        <header className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">
+            Rate {farmer.name || "Unnamed Farmer"}
+          </h1>
+          <span className="font-medium text-gray-700">{user?.email}</span>
+        </header>
 
         <div className="bg-white shadow-md p-6 rounded-lg max-w-xl">
           <div className="mb-4">

@@ -1,0 +1,9 @@
+{
+  "projects": {
+    "default": "harvesthub-fe2bd"
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

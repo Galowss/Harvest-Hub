@@ -21,16 +21,16 @@ export default function Home() {
           Connecting farmers, consumers, and businesses together for a
           sustainable future.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-center w-full max-w-sm sm:max-w-md">
           <Link
             href="/login"
-            className="px-6 sm:px-8 py-3 sm:py-3 bg-green-700 text-white rounded-lg shadow hover:bg-green-800 text-center text-sm sm:text-base transition-colors min-w-[120px]"
+            className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-green-700 text-white rounded-lg shadow hover:bg-green-800 text-center text-sm sm:text-base transition-colors"
           >
             Login
           </Link>
           <Link
             href="/signup"
-            className="px-6 sm:px-8 py-3 sm:py-3 bg-white border border-green-700 text-green-700 rounded-lg shadow hover:bg-green-50 text-center text-sm sm:text-base transition-colors min-w-[120px]"
+            className="w-full sm:w-auto px-6 sm:px-8 py-3 bg-white border border-green-700 text-green-700 rounded-lg shadow hover:bg-green-50 text-center text-sm sm:text-base transition-colors"
           >
             Sign Up
           </Link>

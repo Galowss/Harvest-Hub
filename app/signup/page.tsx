@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { auth, db } from "../config/firebase";
 import { doc, setDoc } from "firebase/firestore";
 
 export default function SignUpUser() {
   const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,91 +21,103 @@ export default function SignUpUser() {
       return;
     }
 
+    setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
+      // Send email verification
+      await sendEmailVerification(userCredential.user);
+
       await setDoc(doc(db, "users", userCredential.user.uid), {
         name,
-        location,
         contact,
         email,
         role: "user",
+        emailVerified: false,
       });
 
-      alert("User account created successfully!");
+      alert("Account created successfully! Please check your email to verify your account before logging in.");
     } catch (error: any) {
       alert(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <main className="flex items-center justify-center h-screen bg-gray-100 px-4 sm:px-6 lg:px-8">
+    <main className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
       <form onSubmit={handleSignUp} className="bg-white p-6 sm:p-8 rounded shadow-md w-full max-w-sm sm:max-w-md">
-        <h1 className="text-lg sm:text-xl font-bold mb-4">Sign Up as User</h1>
+        <h1 className="text-lg sm:text-xl font-bold mb-6 text-center">Sign Up as User</h1>
 
-        <input
-          type="text"
-          placeholder="Full Name"
-          className="w-full mb-3 p-2 border rounded text-sm sm:text-base"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <div className="space-y-4">
+          <input
+            type="text"
+            placeholder="Full Name"
+            className="w-full p-3 border rounded text-sm sm:text-base focus:ring focus:ring-blue-300"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
 
-        <input
-          type="text"
-          placeholder="Location"
-          className="w-full mb-3 p-2 border rounded text-sm sm:text-base"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-        />
+          <input
+            type="text"
+            placeholder="Contact Number"
+            className="w-full p-3 border rounded text-sm sm:text-base focus:ring focus:ring-blue-300"
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+          />
 
-        <input
-          type="text"
-          placeholder="Contact Number"
-          className="w-full mb-3 p-2 border rounded text-sm sm:text-base"
-          value={contact}
-          onChange={(e) => setContact(e.target.value)}
-        />
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full p-3 border rounded text-sm sm:text-base focus:ring focus:ring-blue-300"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
 
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full mb-3 p-2 border rounded text-sm sm:text-base"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Password"
+            className="w-full p-3 border rounded text-sm sm:text-base focus:ring focus:ring-blue-300"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full mb-3 p-2 border rounded text-sm sm:text-base"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            className="w-full p-3 border rounded text-sm sm:text-base focus:ring focus:ring-blue-300"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+          />
+        </div>
 
-        <input
-          type="password"
-          placeholder="Confirm Password"
-          className="w-full mb-3 p-2 border rounded text-sm sm:text-base"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-        />
+        <button 
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white p-3 rounded text-sm sm:text-base transition-colors hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+        >
+          {loading ? "Creating Account..." : "Sign Up"}
+        </button>
 
-        <button className="w-full bg-blue-600 text-white p-2 rounded text-sm sm:text-base transition-colors hover:bg-blue-700">Sign Up</button>
+        <div className="text-center mt-4 space-y-2">
+          <p className="text-xs sm:text-sm">
+            Want to be a farmer?{" "}
+            <Link href="/signup/farmer" className="text-green-600 underline">
+              Sign Up as Farmer
+            </Link>
+          </p>
 
-        <p className="text-xs sm:text-sm text-center mt-3">
-          Want to be a farmer?{" "}
-          <Link href="/signup/farmer" className="text-green-600 underline">
-            Sign Up as Farmer
-          </Link>
-        </p>
-
-        <p className="text-xs sm:text-sm text-center mt-3">
-          Already have an account?{" "}
-          <Link href="/login" className="text-green-600 underline">
-            Login
-          </Link>
-        </p>
+          <p className="text-xs sm:text-sm">
+            Already have an account?{" "}
+            <Link href="/login" className="text-green-600 underline">
+              Login
+            </Link>
+          </p>
+        </div>
       </form>
     </main>
   );

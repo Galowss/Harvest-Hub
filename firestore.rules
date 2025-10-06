@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 👤 USERS COLLECTION
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 🌾 PRODUCTS COLLECTION
+    match /products/{productId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.farmerId == request.auth.uid;
+      // Modified to allow quantity/stock updates during order completion
+      allow update: if request.auth != null && (
+        // Farmer can update everything
+        resource.data.farmerId == request.auth.uid || 
+        // Any authenticated user can update quantity only
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["quantity"]) ||
+        // Allow stock updates for order completion
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stock"])
+      );
+      allow delete: if request.auth != null && resource.data.farmerId == request.auth.uid;
+    }
+
+    // 📦 ORDERS COLLECTION
+    match /orders/{orderId} {
+      // Allow buyer to read their own orders
+      allow read: if request.auth != null && resource.data.buyerId == request.auth.uid;
+
+      // Allow farmer to read orders that belong to them
+      allow read: if request.auth != null && resource.data.farmerId == request.auth.uid;
+
+      // Allow buyer to create orders for themselves
+      allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
+
+      // Allow farmer to update only their own order's status (including cancelled)
+      allow update: if request.auth != null
+        && resource.data.farmerId == request.auth.uid
+        && request.resource.data.status in ["pending", "completed", "cancelled"]
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]);
+
+      // Allow buyer to cancel their own pending orders
+      allow update: if request.auth != null
+        && resource.data.buyerId == request.auth.uid
+        && resource.data.status in ["pending", "Pending"]
+        && request.resource.data.status == "cancelled"
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "cancelledAt"]);
+
+      // Allow buyer to mark their completed orders as reviewed
+      allow update: if request.auth != null
+        && resource.data.buyerId == request.auth.uid
+        && resource.data.status == "completed"
+        && request.resource.data.reviewed == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["reviewed", "reviewedAt"]);
+
+      // No deletes for anyone
+      allow delete: if false;
+    }
+
+    // 🛒 CART COLLECTION
+    match /cart/{cartId} {
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    }
+
+    // 💬 REVIEWS COLLECTION
+    match /reviews/{reviewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // ⭐ RATINGS COLLECTION
+    match /ratings/{ratingId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Remove duplicate ratings match
+    match /farmers/{farmerId}/ratings/{ratingId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+  }
+}
