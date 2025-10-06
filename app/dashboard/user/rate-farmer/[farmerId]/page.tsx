@@ -12,14 +12,28 @@ import {
 } from "firebase/firestore";
 import { useLogout } from "@/hooks/useLogout";
 
+interface Farmer {
+  id: string;
+  name?: string;
+  email: string;
+  profilePhoto?: string;
+  role: string;
+}
+
+interface User {
+  uid: string;
+  email: string;
+  displayName?: string;
+}
+
 export default function RateSpecificFarmer() {
   const params = useParams();
   const farmerId = params?.farmerId as string;
   const router = useRouter();
   const { handleLogout } = useLogout();
 
-  const [farmer, setFarmer] = useState<any>(null);
-  const [user, setUser] = useState<any>(null);
+  const [farmer, setFarmer] = useState<Farmer | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [rating, setRating] = useState<number>(0);
   const [review, setReview] = useState("");
   const [loading, setLoading] = useState(true);
@@ -32,7 +46,7 @@ export default function RateSpecificFarmer() {
         setLoading(true);
         const farmerDoc = await getDoc(doc(db, "users", farmerId));
         if (farmerDoc.exists()) {
-          setFarmer({ id: farmerId, ...farmerDoc.data() });
+          setFarmer({ id: farmerId, ...farmerDoc.data() } as Farmer);
         }
       } catch (error) {
         console.error("Error fetching farmer:", error);
@@ -43,7 +57,11 @@ export default function RateSpecificFarmer() {
 
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       if (currentUser) {
-        setUser(currentUser);
+        setUser({
+          uid: currentUser.uid,
+          email: currentUser.email || '',
+          displayName: currentUser.displayName || undefined
+        });
         await fetchFarmer();
       } else {
         router.push("/login");

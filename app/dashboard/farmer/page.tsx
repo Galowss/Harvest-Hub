@@ -17,9 +17,43 @@ import {
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
 
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: string;
+  quantity: string;
+  stock?: string;
+  harvestDate: string;
+  images: string[];
+  existingImages?: string[];
+  newImages?: File[];
+  farmerId: string;
+}
+
+interface NewProduct {
+  name: string;
+  description: string;
+  category: string;
+  price: string;
+  quantity: string;
+  harvestDate: string;
+  images: File[];
+}
+
+interface User {
+  uid: string;
+  id: string;
+  email: string;
+  name?: string;
+  displayName?: string;
+  profilePhoto?: string;
+}
+
 export default function FarmerDashboard() {
-  const [user, setUser] = useState<any>(null);
-  const [products, setProducts] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [newProduct, setNewProduct] = useState({
     name: "",
     description: "",
@@ -102,20 +136,24 @@ export default function FarmerDashboard() {
         }
       }, 200);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error accessing camera:", error);
       let errorMessage = "Unable to access camera. ";
       
-      if (error.name === 'NotAllowedError') {
-        errorMessage += "Please allow camera permissions and try again.";
-      } else if (error.name === 'NotFoundError') {
-        errorMessage += "No camera found on this device.";
-      } else if (error.name === 'NotSupportedError') {
-        errorMessage += "Camera is not supported on this browser.";
-      } else if (error.name === 'NotReadableError') {
-        errorMessage += "Camera is being used by another application.";
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage += "Please allow camera permissions and try again.";
+        } else if (error.name === 'NotFoundError') {
+          errorMessage += "No camera found on this device.";
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage += "Camera is not supported on this browser.";
+        } else if (error.name === 'NotReadableError') {
+          errorMessage += "Camera is being used by another application.";
+        } else {
+          errorMessage += error.message || "Unknown error occurred.";
+        }
       } else {
-        errorMessage += error.message || "Unknown error occurred.";
+        errorMessage += "Unknown error occurred.";
       }
       
       alert(errorMessage);
@@ -419,7 +457,7 @@ export default function FarmerDashboard() {
     const productsWithURLs = await Promise.all(
       querySnapshot.docs.map(async (docSnap) => {
         const data = docSnap.data();
-        return { id: docSnap.id, ...data };
+        return { id: docSnap.id, ...data } as Product;
       })
     );
 
@@ -545,6 +583,8 @@ export default function FarmerDashboard() {
       price: product.price?.toString() || '',
       quantity: product.stock?.toString() || product.quantity?.toString() || '',
       harvestDate: product.harvestDate || '',
+      images: product.images || [],
+      farmerId: product.farmerId || '',
       existingImages: product.images || [], // Use base64 images
       newImages: []
     });
@@ -599,16 +639,16 @@ export default function FarmerDashboard() {
   };
 
   const removeExistingImage = (index: number) => {
-    setEditingProduct((prev: any) => ({
-      ...prev,
-      existingImages: prev.existingImages.filter((_: any, i: number) => i !== index)
+    setEditingProduct((prev: Product | null) => ({
+      ...prev!,
+      existingImages: prev!.existingImages!.filter((_, i: number) => i !== index)
     }));
   };
 
   const removeNewImage = (index: number) => {
-    setEditingProduct((prev: any) => ({
-      ...prev,
-      newImages: prev.newImages.filter((_: any, i: number) => i !== index)
+    setEditingProduct((prev: Product | null) => ({
+      ...prev!,
+      newImages: prev!.newImages!.filter((_, i: number) => i !== index)
     }));
   };
 
@@ -618,9 +658,9 @@ export default function FarmerDashboard() {
     );
     
     if (files.length > 0) {
-      setEditingProduct((prev: any) => ({
-        ...prev,
-        newImages: [...prev.newImages, ...files].slice(0, 5 - prev.existingImages.length)
+      setEditingProduct((prev: Product | null) => ({
+        ...prev!,
+        newImages: [...(prev!.newImages || []), ...files].slice(0, 5 - (prev!.existingImages?.length || 0))
       }));
     }
   };
@@ -742,7 +782,12 @@ export default function FarmerDashboard() {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists() && docSnap.data().role === "farmer") {
-          setUser({ id: currentUser.uid, ...docSnap.data() });
+          setUser({ 
+            uid: currentUser.uid,
+            id: currentUser.uid, 
+            email: currentUser.email || '',
+            ...docSnap.data() 
+          });
           fetchProducts(currentUser.uid);
         } else {
           alert("Unauthorized access");
@@ -1325,7 +1370,7 @@ export default function FarmerDashboard() {
                 </button>
                 {!cameraStream && (
                   <p className="text-xs text-gray-500 text-center">
-                    Note: Camera requires HTTPS or localhost. Make sure you've allowed camera permissions.
+                    Note: Camera requires HTTPS or localhost. Make sure you&apos;ve allowed camera permissions.
                   </p>
                 )}
               </div>
