@@ -22,6 +22,16 @@ interface Order {
   reviewed?: boolean;
   productImage?: string;
   buyerId: string;
+  trackingNumber?: string;
+  deliveryStatus?: string;
+  deliveryStartedAt?: any;
+  deliveredAt?: any;
+  deliveryOption?: 'delivery' | 'pickup';
+  deliveryAddress?: string;
+  pickupDate?: string;
+  pickupTime?: string;
+  pickupDateTime?: any;
+  requiresDelivery?: boolean;
   [key: string]: unknown; // Allow additional properties
 }
 
@@ -45,6 +55,7 @@ export default function OrdersPage() {
   const filteredOrders = orders.filter(order => {
     if (activeFilter === 'all') return true;
     if (activeFilter === 'pending') return order.status === 'pending' || order.status === 'Pending';
+    if (activeFilter === 'out-for-delivery') return order.status === 'out-for-delivery';
     if (activeFilter === 'completed') return order.status === 'completed';
     if (activeFilter === 'cancelled') return order.status === 'cancelled';
     return true;
@@ -54,6 +65,7 @@ export default function OrdersPage() {
   const orderCounts = {
     all: orders.length,
     pending: orders.filter(order => order.status === 'pending' || order.status === 'Pending').length,
+    'out-for-delivery': orders.filter(order => order.status === 'out-for-delivery').length,
     completed: orders.filter(order => order.status === 'completed').length,
     cancelled: orders.filter(order => order.status === 'cancelled').length
   };
@@ -312,6 +324,16 @@ export default function OrdersPage() {
               Pending ({orderCounts.pending})
             </button>
             <button
+              onClick={() => setActiveFilter('out-for-delivery')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeFilter === 'out-for-delivery'
+                  ? 'bg-blue-500 text-white border-b-2 border-blue-500'
+                  : 'text-gray-600 hover:text-blue-500 hover:bg-gray-50'
+              }`}
+            >
+              🚚 Out for Delivery ({orderCounts['out-for-delivery']})
+            </button>
+            <button
               onClick={() => setActiveFilter('completed')}
               className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
                 activeFilter === 'completed'
@@ -375,21 +397,82 @@ export default function OrdersPage() {
                 </div>
                 <h3 className="font-bold text-sm lg:text-base">{order.name}</h3>
                 <p className="text-gray-600 text-xs lg:text-sm">Quantity: {order.quantity}</p>
-                <p className="text-gray-600 text-xs lg:text-sm">Price: {order.price}</p>
+                <p className="text-gray-600 text-xs lg:text-sm">Price: ₱{order.price}</p>
+                
+                {/* Delivery/Pickup Badge */}
+                <div className="mt-2">
+                  {order.deliveryOption === 'delivery' && (
+                    <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                      🚚 Delivery
+                    </span>
+                  )}
+                  {order.deliveryOption === 'pickup' && (
+                    <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                      📦 Pickup
+                    </span>
+                  )}
+                </div>
+
                 <p className="text-gray-700 font-medium mt-2 text-xs lg:text-sm">
                   Status:{" "}
                   <span
                     className={`px-2 py-1 rounded text-white text-xs ${
                       order.status === "pending" || order.status === "Pending"
                         ? "bg-yellow-500"
+                        : order.status === "out-for-delivery"
+                        ? "bg-blue-500"
                         : order.status === "cancelled"
                         ? "bg-red-500"
                         : "bg-green-600" // All completed orders will be green
                     }`}
                   >
-                    {order.status}
+                    {order.status === "out-for-delivery" ? "🚚 Out for Delivery" : order.status}
                   </span>
                 </p>
+
+                {/* Delivery Address (for delivery orders) */}
+                {order.deliveryOption === 'delivery' && order.deliveryAddress && (
+                  <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                    <p className="text-xs font-semibold text-green-800">Delivery Address:</p>
+                    <p className="text-xs text-gray-700 mt-1">{order.deliveryAddress}</p>
+                  </div>
+                )}
+
+                {/* Pickup Information (for pickup orders) */}
+                {order.deliveryOption === 'pickup' && order.pickupDate && order.pickupTime && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-xs font-semibold text-blue-800">Pickup Schedule:</p>
+                    <p className="text-xs text-gray-700 mt-1">
+                      📅 {new Date(order.pickupDate).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-gray-700">
+                      🕐 {order.pickupTime}
+                    </p>
+                  </div>
+                )}
+
+                {/* Delivery Tracking Information */}
+                {order.status === "out-for-delivery" && order.deliveryOption === 'delivery' && (
+                  <div className="mt-3 p-2 bg-blue-50 rounded border border-blue-200">
+                    <p className="text-xs font-semibold text-blue-800 mb-1">📦 Delivery Tracking</p>
+                    {order.trackingNumber && (
+                      <p className="text-xs text-gray-700">
+                        <span className="font-semibold">Tracking #:</span> {order.trackingNumber}
+                      </p>
+                    )}
+                    {order.deliveryStartedAt && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        Started: {new Date(order.deliveryStartedAt.seconds * 1000).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {order.status === "completed" && order.deliveredAt && (
+                  <p className="text-xs text-green-700 mt-1">
+                    {order.deliveryOption === 'pickup' ? 'Picked up on:' : 'Delivered on:'} {new Date(order.deliveredAt.seconds * 1000).toLocaleDateString()}
+                  </p>
+                )}
                 
                 {/* Cancel button for pending orders */}
                 {(order.status === "pending" || order.status === "Pending") && (
@@ -399,6 +482,13 @@ export default function OrdersPage() {
                   >
                     Cancel Order
                   </button>
+                )}
+
+                {/* Note for out for delivery/pickup ready orders */}
+                {order.status === "out-for-delivery" && (
+                  <div className="mt-3 w-full bg-blue-100 text-blue-800 px-3 py-2 rounded text-xs lg:text-sm text-center">
+                    {order.deliveryOption === 'delivery' ? 'Your order is on its way!' : 'Your order is ready for pickup!'}
+                  </div>
                 )}
 
                 {/* Review button for completed orders */}

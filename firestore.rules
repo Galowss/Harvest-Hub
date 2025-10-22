@@ -32,13 +32,14 @@ service cloud.firestore {
       allow read: if request.auth != null && resource.data.farmerId == request.auth.uid;
 
       // Allow buyer to create orders for themselves
-      allow create: if request.auth != null && request.resource.data.buyerId == request.auth.uid;
+      // Simplified to allow delivery/pickup fields without strict validation
+      allow create: if request.auth != null 
+        && request.resource.data.buyerId == request.auth.uid;
 
-      // Allow farmer to update only their own order's status (including cancelled)
+      // Allow farmer to update order status and delivery info
       allow update: if request.auth != null
         && resource.data.farmerId == request.auth.uid
-        && request.resource.data.status in ["pending", "completed", "cancelled"]
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]);
+        && request.resource.data.status in ["pending", "out-for-delivery", "completed", "cancelled"];
 
       // Allow buyer to cancel their own pending orders
       allow update: if request.auth != null

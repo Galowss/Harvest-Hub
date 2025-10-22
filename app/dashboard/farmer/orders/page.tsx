@@ -108,6 +108,26 @@ export default function FarmerOrdersPage() {
     }
   };
 
+  // mark order as out for delivery
+  const handleMarkForDelivery = async (orderId: string) => {
+    const trackingNumber = `TRK-${Date.now()}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+    
+    try {
+      const orderRef = doc(db, "orders", orderId);
+      await updateDoc(orderRef, { 
+        status: "out-for-delivery",
+        deliveryStatus: "out-for-delivery",
+        trackingNumber: trackingNumber,
+        deliveryStartedAt: new Date(),
+      });
+      if (user) fetchOrders(user.uid);
+      alert(`Order marked for delivery!\nTracking Number: ${trackingNumber}`);
+    } catch (err) {
+      console.error("Error marking for delivery:", err);
+      alert("Failed to mark order for delivery. Please try again.");
+    }
+  };
+
   // cancel order
   const handleCancelOrder = async (orderId: string) => {
     const confirmed = confirm("Are you sure you want to cancel this order? This action cannot be undone.");
@@ -124,7 +144,7 @@ export default function FarmerOrdersPage() {
     }
   };
 
-  // complete order and update product stock
+  // complete order and update product stock (mark as delivered)
   const handleCompleteOrder = async (orderId: string) => {
     try {
       // Get order details first
@@ -151,7 +171,11 @@ export default function FarmerOrdersPage() {
       if (!productSnap.exists()) {
         alert("Product not found. Completing order without stock update.");
         // Complete order anyway
-        await updateDoc(orderRef, { status: "completed" });
+        await updateDoc(orderRef, { 
+          status: "completed",
+          deliveryStatus: "delivered",
+          deliveredAt: new Date()
+        });
         if (user) fetchOrders(user.uid);
         return;
       }
@@ -174,13 +198,17 @@ export default function FarmerOrdersPage() {
       
       // Update both order status and product stock
       await Promise.all([
-        updateDoc(orderRef, { status: "completed" }),
+        updateDoc(orderRef, { 
+          status: "completed",
+          deliveryStatus: "delivered",
+          deliveredAt: new Date()
+        }),
         updateDoc(productRef, { stock: newStock })
       ]);
       
       if (user) fetchOrders(user.uid);
       alert(
-        `Order completed successfully! ` +
+        `Order marked as delivered! ` +
         `Product stock updated: ${currentStock} → ${newStock}`
       );
       
@@ -253,52 +281,115 @@ export default function FarmerOrdersPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
             {orders.map((order) => (
               <div key={order.id} className="bg-white p-3 lg:p-4 rounded shadow">
-                <div
-                  className="h-24 sm:h-32 bg-gray-200 mb-3 rounded flex items-center justify-center"
-                  style={{
-                    backgroundImage: order.productImage ? `url(${order.productImage})` : 'none',
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                  }}
-                >
-                  {!order.productImage && (
-                    <div className="text-center text-gray-500">
-                      <svg className="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-xs">No Image</p>
+                  <div
+                    className="h-24 sm:h-32 bg-gray-200 mb-3 rounded flex items-center justify-center"
+                    style={{
+                      backgroundImage: order.productImage ? `url(${order.productImage})` : 'none',
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  >
+                    {!order.productImage && (
+                      <div className="text-center text-gray-500">
+                        <svg className="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-xs">No Image</p>
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="font-bold text-sm lg:text-base">{order.name}</h3>
+                  <p className="text-gray-600 text-xs lg:text-sm">Buyer: {order.buyerEmail}</p>
+                  <p className="text-gray-600 text-xs lg:text-sm">Quantity: {order.quantity}</p>
+                  
+                  {/* Delivery/Pickup Badge */}
+                  <div className="mt-2">
+                    {order.deliveryOption === 'delivery' && (
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                        🚚 Delivery
+                      </span>
+                    )}
+                    {order.deliveryOption === 'pickup' && (
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                        📦 Pickup
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Delivery Address (for delivery orders) */}
+                  {order.deliveryOption === 'delivery' && order.deliveryAddress && (
+                    <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                      <p className="text-xs font-semibold text-green-800">Delivery To:</p>
+                      <p className="text-xs text-gray-700 mt-1">{order.deliveryAddress}</p>
                     </div>
                   )}
-                </div>
-                <h3 className="font-bold text-sm lg:text-base">{order.name}</h3>
-                <p className="text-gray-600 text-xs lg:text-sm">Buyer: {order.buyerEmail}</p>
-                <p className="text-gray-600 text-xs lg:text-sm">Quantity: {order.quantity}</p>
-                <p className="text-gray-700 font-medium mt-2 text-xs lg:text-sm">
-                  Status:{" "}
-                  <span
-                    className={`px-2 py-1 rounded text-white text-xs ${
-                      order.status === "pending"
-                        ? "bg-yellow-500"
-                        : order.status === "completed"
-                        ? "bg-green-600"
-                        : order.status === "cancelled"
-                        ? "bg-red-500"
-                        : "bg-gray-500"
-                    }`}
-                  >
-                    {order.status}
-                  </span>
-                </p>
+
+                  {/* Pickup Information (for pickup orders) */}
+                  {order.deliveryOption === 'pickup' && order.pickupDate && order.pickupTime && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                      <p className="text-xs font-semibold text-blue-800">Pickup Schedule:</p>
+                      <p className="text-xs text-gray-700 mt-1">
+                        📅 {new Date(order.pickupDate).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-gray-700">
+                        🕐 {order.pickupTime}
+                      </p>
+                    </div>
+                  )}
+
+                  <p className="text-gray-700 font-medium mt-2 text-xs lg:text-sm">
+                    Status:{" "}
+                    <span
+                      className={`px-2 py-1 rounded text-white text-xs ${
+                        order.status === "pending"
+                          ? "bg-yellow-500"
+                          : order.status === "out-for-delivery"
+                          ? "bg-blue-500"
+                          : order.status === "completed"
+                          ? "bg-green-600"
+                          : order.status === "cancelled"
+                          ? "bg-red-500"
+                          : "bg-gray-500"
+                      }`}
+                    >
+                      {order.status === "out-for-delivery" ? "Out for Delivery" : order.status}
+                    </span>
+                  </p>
+
+                  {/* Display tracking number if available */}
+                  {order.trackingNumber && (
+                    <p className="text-gray-600 text-xs mt-1">
+                      <span className="font-semibold">Tracking:</span> {order.trackingNumber}
+                    </p>
+                  )}
 
                 <div className="mt-3 flex flex-col gap-2">
                   {order.status === "pending" && (
                     <>
-                      <button
-                        onClick={() => handleCompleteOrder(order.id)}
-                        className="px-3 py-1 bg-green-600 text-white rounded text-xs lg:text-sm hover:bg-green-700 transition-colors"
-                      >
-                        Complete Order
-                      </button>
+                      {order.deliveryOption === 'delivery' && (
+                        <button
+                          onClick={() => handleMarkForDelivery(order.id)}
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs lg:text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          🚚 Mark for Delivery
+                        </button>
+                      )}
+                      {order.deliveryOption === 'pickup' && (
+                        <button
+                          onClick={() => handleCompleteOrder(order.id)}
+                          className="px-3 py-1 bg-green-600 text-white rounded text-xs lg:text-sm hover:bg-green-700 transition-colors"
+                        >
+                          ✓ Ready for Pickup
+                        </button>
+                      )}
+                      {!order.deliveryOption && (
+                        <button
+                          onClick={() => handleMarkForDelivery(order.id)}
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs lg:text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          🚚 Mark for Delivery
+                        </button>
+                      )}
                       <button
                         onClick={() => handleCancelOrder(order.id)}
                         className="px-3 py-1 bg-red-600 text-white rounded text-xs lg:text-sm hover:bg-red-700 transition-colors"
@@ -307,10 +398,19 @@ export default function FarmerOrdersPage() {
                       </button>
                     </>
                   )}
+
+                  {order.status === "out-for-delivery" && (
+                    <button
+                      onClick={() => handleCompleteOrder(order.id)}
+                      className="px-3 py-1 bg-green-600 text-white rounded text-xs lg:text-sm hover:bg-green-700 transition-colors"
+                    >
+                      ✓ Mark as Delivered
+                    </button>
+                  )}
                   
                   {order.status === "completed" && (
                     <div className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs lg:text-sm text-center">
-                      ✓ Order Completed
+                      ✓ {order.deliveryOption === 'pickup' ? 'Picked Up' : 'Delivered'}
                     </div>
                   )}
                   
@@ -318,15 +418,6 @@ export default function FarmerOrdersPage() {
                     <div className="px-3 py-1 bg-red-100 text-red-800 rounded text-xs lg:text-sm text-center">
                       ✗ Order Cancelled
                     </div>
-                  )}
-                  
-                  {order.status !== "pending" && order.status !== "completed" && order.status !== "cancelled" && (
-                    <button
-                      onClick={() => handleStatusUpdate(order.id, "pending")}
-                      className="px-3 py-1 bg-yellow-500 text-white rounded text-xs lg:text-sm hover:bg-yellow-600 transition-colors"
-                    >
-                      Set Pending
-                    </button>
                   )}
                 </div>
               </div>

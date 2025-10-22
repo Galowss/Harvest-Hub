@@ -147,93 +147,18 @@ export default function CartPage() {
     }
   };
 
-  const handleOrderNow = async (item: any) => {
-    if (!user) return;
-    try {
-      // create new order document
-      await addDoc(collection(db, "orders"), {
-        buyerId: user.id, // match Firestore rules
-        farmerId: item.farmerId || "", // optional
-        productId: item.productId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        photo: item.photo,
-        status: "pending",
-        createdAt: new Date(),
-      });
-
-      // remove from cart after ordering
-      await deleteDoc(doc(db, "cart", item.id));
-      setCartItems(cartItems.filter((p) => p.id !== item.id));
-
-      // Remove from selection if it was selected
-      const newSelected = new Set(selectedItems);
-      newSelected.delete(item.id);
-      setSelectedItems(newSelected);
-
-      alert("Order placed successfully!");
-    } catch (err: any) {
-      console.error("Error creating order:", err);
-      alert("Error creating order. Check Firestore rules and console logs.");
-    }
+  const handleOrderNow = (item: any) => {
+    router.push(`/dashboard/user/order-summary?ids=${item.id}`);
   };
 
-  const handleCheckout = async () => {
+  const openCheckoutSummary = () => {
     const selectedCartItems = getSelectedCartItems();
-    
     if (selectedCartItems.length === 0) {
       alert("Please select at least one item to checkout.");
       return;
     }
-
-    try {
-      for (const item of selectedCartItems) {
-        // Check product availability before proceeding
-        const productRef = doc(db, "products", item.productId);
-        const productSnap = await getDoc(productRef);
-        
-        if (!productSnap.exists()) {
-          throw new Error(`Product ${item.name} is no longer available`);
-        }
-
-        if (productSnap.data().quantity < item.quantity) {
-          throw new Error(`Not enough stock for ${item.name}`);
-        }
-      }
-
-      // Proceed with order creation for selected items
-      for (const item of selectedCartItems) {
-        await addDoc(collection(db, "orders"), {
-          buyerId: user.id, // match Firestore rules
-          farmerId: item.farmerId || "", // optional
-          productId: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          photo: item.photo,
-          status: "pending",
-          createdAt: new Date(),
-        });
-      }
-
-      // Remove only selected items from cart after successful checkout
-      for (const item of selectedCartItems) {
-        await deleteDoc(doc(db, "cart", item.id));
-      }
-      
-      // Update cart items and clear selection
-      setCartItems(cartItems.filter(item => !selectedItems.has(item.id)));
-      setSelectedItems(new Set());
-
-      alert(`Checkout successful! ${selectedCartItems.length} item(s) ordered.`);
-    } catch (error) {
-      if (error instanceof Error) {
-        alert(error.message);
-      } else {
-        alert("An unknown error occurred during checkout.");
-      }
-    }
+    const ids = selectedCartItems.map(item => item.id).join(",");
+    router.push(`/dashboard/user/order-summary?ids=${ids}`);
   };
 
   if (loading) {
@@ -399,7 +324,7 @@ export default function CartPage() {
                   </div>
                 </div>
                 <button
-                  onClick={handleCheckout}
+                  onClick={openCheckoutSummary}
                   className="w-full bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 transition"
                 >
                   Checkout Selected Items
@@ -411,7 +336,10 @@ export default function CartPage() {
             {selectedItems.size === 0 && (
               <div className="bg-white p-4 rounded-lg shadow">
                 <button
-                  onClick={handleCheckout}
+                  onClick={() => {
+                    setSelectedItems(new Set(cartItems.map(item => item.id)));
+                    setTimeout(() => openCheckoutSummary(), 0);
+                  }}
                   className="w-full bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition"
                 >
                   Checkout All Items

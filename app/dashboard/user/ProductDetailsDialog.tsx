@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { db } from "../../config/firebase";
+import { db, auth } from "../../config/firebase";
 import {
   doc,
   getDoc,
@@ -32,6 +33,7 @@ const ProductDetailsDialog: React.FC<ProductDetailsDialogProps> = ({
   onClose,
   user,
 }) => {
+  const router = useRouter();
   const [farmer, setFarmer] = useState<any>(null);
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [productRating, setProductRating] = useState<{ average: number | null; totalReviews: number }>({ average: null, totalReviews: 0 });
@@ -150,7 +152,9 @@ useEffect(() => {
   }, [product]);
 
   const handleAddToCart = async () => {
-    if (!user) {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser || !user) {
       alert("You must be logged in to add to cart.");
       return;
     }
@@ -163,7 +167,7 @@ useEffect(() => {
 
     try {
       await addDoc(collection(db, "cart"), {
-        userId: user.id,
+        userId: currentUser.uid, // Use Firebase Auth UID directly
         productId: product.id,
         name: product.name,
         price: product.price,
@@ -181,7 +185,9 @@ useEffect(() => {
   };
 
   const handleOrderNow = async () => {
-    if (!user) {
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser || !user) {
       alert("You must be logged in to order.");
       return;
     }
@@ -193,21 +199,24 @@ useEffect(() => {
     }
 
     try {
-      await addDoc(collection(db, "orders"), {
-        buyerId: user.id,
+      // Add product to cart first and get the cart document ID
+      const cartDocRef = await addDoc(collection(db, "cart"), {
+        userId: currentUser.uid, // Use Firebase Auth UID directly
         productId: product.id,
         name: product.name,
         price: product.price,
-        quantity: quantity,
+        photo: (product.images && product.images.length > 0) ? product.images[0] : "",
         farmerId: product.farmerId,
-        status: "pending",
+        quantity: quantity,
         createdAt: new Date(),
       });
-      alert(`Order for ${quantity} item(s) placed successfully!`);
+      
+      // Redirect to order summary page with the cart document ID
       onClose();
+      router.push(`/dashboard/user/order-summary?ids=${cartDocRef.id}`);
     } catch (err) {
-      console.error("Error placing order:", err);
-      alert("Failed to place order.");
+      console.error("Error adding to cart:", err);
+      alert("Failed to proceed with order. Please try again.");
     }
   };
 

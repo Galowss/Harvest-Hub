@@ -184,34 +184,6 @@ export default function UserDashboard() {
     }
   };
 
-  // ✅ Order now (direct purchase)
-  const handleOrderNow = async (product: any) => {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        alert("Please log in to order.");
-        return;
-      }
-
-      await addDoc(collection(db, "orders"), {
-        buyerId: currentUser.uid,
-        farmerId: product.farmerId,
-        productId: product.id,
-        productName: product.name,
-        price: product.price,
-        quantity: 1,
-        status: "pending",
-        createdAt: new Date(),
-      });
-
-      alert("Order placed successfully!");
-      setDialogOpen(false);
-    } catch (error) {
-      console.error("Error placing order:", error);
-      alert("Failed to place order.");
-    }
-  };
-
   if (loading || !isClient)
     return (
       <div className="flex h-screen items-center justify-center">
