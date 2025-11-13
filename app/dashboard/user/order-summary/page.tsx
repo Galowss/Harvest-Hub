@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { db, auth } from "@/app/config/firebase";
-import { addDoc, collection, doc, getDoc, deleteDoc } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, deleteDoc, updateDoc, increment, Timestamp } from "firebase/firestore";
 import dynamic from "next/dynamic";
 
 // Dynamically import map component to avoid SSR issues
@@ -31,6 +31,9 @@ function OrderSummaryContent() {
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
   const [showMap, setShowMap] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'cash'>('cash');
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [processingOrder, setProcessingOrder] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -56,6 +59,14 @@ function OrderSummaryContent() {
         }
       }
       setItems(fetched);
+      
+      // Fetch wallet balance
+      const walletRef = doc(db, "wallets", currentUser.uid);
+      const walletSnap = await getDoc(walletRef);
+      if (walletSnap.exists()) {
+        setWalletBalance(walletSnap.data().balance || 0);
+      }
+      
       setLoading(false);
     });
     return () => unsubscribe();
@@ -74,7 +85,43 @@ function OrderSummaryContent() {
       alert("Please select pickup date and time.");
       return;
     }
+    
+    const totalAmount = calculateTotal();
+    
+    // Check wallet balance if using wallet payment
+    if (paymentMethod === 'wallet' && walletBalance < totalAmount) {
+      const deficit = totalAmount - walletBalance;
+      if (window.confirm(`Insufficient balance! You need ₱${deficit.toFixed(2)} more. Would you like to top up your wallet?`)) {
+        router.push('/dashboard/user/wallet');
+        return;
+      }
+      return;
+    }
+    
+    setProcessingOrder(true);
+    
     try {
+      // If paying with wallet, deduct balance and create transaction
+      if (paymentMethod === 'wallet') {
+        // Deduct from wallet
+        const walletRef = doc(db, "wallets", user.id);
+        await updateDoc(walletRef, {
+          balance: increment(-totalAmount),
+          totalWithdrawals: increment(totalAmount),
+          lastUpdated: Timestamp.now(),
+        });
+        
+        // Create debit transaction
+        await addDoc(collection(db, "transactions"), {
+          userId: user.id,
+          type: "debit",
+          amount: totalAmount,
+          description: `Payment for ${items.length} item(s) - ${deliveryOption === 'delivery' ? 'Delivery' : 'Pickup'}`,
+          status: "completed",
+          createdAt: Timestamp.now(),
+        });
+      }
+      
       for (const item of items) {
         const orderData: any = {
           buyerId: user.id,
@@ -87,6 +134,8 @@ function OrderSummaryContent() {
           status: "pending",
           createdAt: new Date(),
           deliveryOption,
+          paymentMethod,
+          paymentStatus: paymentMethod === 'wallet' ? 'paid' : 'pending',
         };
         if (deliveryOption === 'delivery') {
           orderData.deliveryAddress = deliveryAddress;
@@ -104,10 +153,14 @@ function OrderSummaryContent() {
         // Remove from cart
         await deleteDoc(doc(db, "cart", item.id));
       }
-      alert("Order placed successfully!");
+      
+      alert(`Order placed successfully! ${paymentMethod === 'wallet' ? '₱' + totalAmount.toFixed(2) + ' has been deducted from your wallet.' : 'Payment will be collected on delivery/pickup.'}`);
       router.push("/dashboard/user/orders");
     } catch (err) {
+      console.error("Error placing order:", err);
       alert("Error placing order. Please try again.");
+    } finally {
+      setProcessingOrder(false);
     }
   };
 
@@ -220,18 +273,127 @@ function OrderSummaryContent() {
           </div>
         )}
       </div>
+
+      {/* Payment Method Selection */}
+      <div className="mb-6 bg-white rounded shadow p-4">
+        <h2 className="text-lg font-semibold mb-3">💳 Payment Method</h2>
+        
+        {/* Wallet Balance Display */}
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded flex items-center justify-between">
+          <div>
+            <p className="text-sm text-gray-600">Your Wallet Balance</p>
+            <p className="text-xl font-bold text-blue-600">₱{walletBalance.toFixed(2)}</p>
+          </div>
+          <a
+            href="/dashboard/user/wallet"
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Manage Wallet →
+          </a>
+        </div>
+
+        {/* Payment Options */}
+        <div className="space-y-3">
+          <button
+            className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
+              paymentMethod === 'wallet'
+                ? 'border-green-500 bg-green-50'
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+            onClick={() => setPaymentMethod('wallet')}
+            disabled={walletBalance < calculateTotal()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div
+                  className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                    paymentMethod === 'wallet'
+                      ? 'border-green-500 bg-green-500'
+                      : 'border-gray-300'
+                  }`}
+                >
+                  {paymentMethod === 'wallet' && (
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Pay with Digital Wallet</p>
+                  <p className="text-sm text-gray-600">
+                    {walletBalance >= calculateTotal()
+                      ? `Balance: ₱${walletBalance.toFixed(2)} (Sufficient)`
+                      : `Insufficient balance - Need ₱${(calculateTotal() - walletBalance).toFixed(2)} more`}
+                  </p>
+                </div>
+              </div>
+              {walletBalance < calculateTotal() && (
+                <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                  Top up required
+                </span>
+              )}
+            </div>
+          </button>
+
+          <button
+            className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
+              paymentMethod === 'cash'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+            onClick={() => setPaymentMethod('cash')}
+          >
+            <div className="flex items-center space-x-3">
+              <div
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                  paymentMethod === 'cash'
+                    ? 'border-blue-500 bg-blue-500'
+                    : 'border-gray-300'
+                }`}
+              >
+                {paymentMethod === 'cash' && (
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-800">
+                  Cash on {deliveryOption === 'delivery' ? 'Delivery' : 'Pickup'}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Pay ₱{calculateTotal().toFixed(2)} when you receive your order
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
       <div className="flex gap-3">
         <button
           className="flex-1 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
           onClick={() => router.back()}
+          disabled={processingOrder}
         >
           Cancel
         </button>
         <button
-          className={`flex-1 px-4 py-2 text-white rounded ${deliveryOption === 'delivery' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+          className={`flex-1 px-4 py-2 text-white rounded transition-colors ${
+            deliveryOption === 'delivery' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
           onClick={handlePlaceOrder}
+          disabled={processingOrder || (paymentMethod === 'wallet' && walletBalance < calculateTotal())}
         >
-          Place Order
+          {processingOrder ? 'Processing...' : `Place Order (₱${calculateTotal().toFixed(2)})`}
         </button>
       </div>
     </div>

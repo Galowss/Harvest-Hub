@@ -206,11 +206,20 @@ export default function UserDashboard() {
           <a href="/dashboard/user/orders" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Orders
           </a>
+          <a href="/dashboard/user/wallet" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            Digital Wallet
+          </a>
           <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Rate Farmer
           </a>
           <a href="/dashboard/user/profile" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Profile
+          </a>
+          <a href="/dashboard/community" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            Community Hub
+          </a>
+          <a href="/dashboard/map" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            Farmer Map
           </a>
         </nav>
         

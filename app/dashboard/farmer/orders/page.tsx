@@ -12,6 +12,9 @@ import {
   doc,
   updateDoc,
   getDoc,
+  addDoc,
+  increment,
+  Timestamp,
 } from "firebase/firestore";
 
 export default function FarmerOrdersPage() {
@@ -206,11 +209,68 @@ export default function FarmerOrdersPage() {
         updateDoc(productRef, { stock: newStock })
       ]);
       
-      if (user) fetchOrders(user.uid);
-      alert(
-        `Order marked as delivered! ` +
-        `Product stock updated: ${currentStock} → ${newStock}`
-      );
+      // 💰 AUTO-PAYOUT: Credit farmer wallet if order was paid with wallet
+      if (orderData.paymentMethod === 'wallet' && orderData.paymentStatus === 'paid') {
+        try {
+          const amount = (parseFloat(orderData.price) || 0) * (parseInt(orderData.quantity) || 1);
+          const farmerId = user.uid;
+          
+          // Credit farmer's wallet
+          const walletRef = doc(db, "wallets", farmerId);
+          const walletSnap = await getDoc(walletRef);
+          
+          if (walletSnap.exists()) {
+            await updateDoc(walletRef, {
+              balance: increment(amount),
+              totalEarnings: increment(amount),
+              lastUpdated: Timestamp.now(),
+            });
+          } else {
+            // Create wallet if doesn't exist
+            await updateDoc(walletRef, {
+              balance: amount,
+              totalEarnings: amount,
+              totalWithdrawals: 0,
+              lastUpdated: Timestamp.now(),
+            });
+          }
+          
+          // Create credit transaction for farmer
+          await addDoc(collection(db, "transactions"), {
+            userId: farmerId,
+            type: "credit",
+            amount: amount,
+            description: `Payment received for ${orderData.name || 'order'} (Order #${orderId.slice(0, 8)})`,
+            orderId: orderId,
+            status: "completed",
+            createdAt: Timestamp.now(),
+            completedAt: Timestamp.now(),
+          });
+          
+          if (user) fetchOrders(user.uid);
+          alert(
+            `✅ Order marked as delivered!\n\n` +
+            `📦 Product stock updated: ${currentStock} → ${newStock}\n` +
+            `💰 ₱${amount.toFixed(2)} credited to your wallet!`
+          );
+        } catch (walletError) {
+          console.error("Error processing payment:", walletError);
+          if (user) fetchOrders(user.uid);
+          alert(
+            `⚠️ Order completed and stock updated, but wallet payout failed.\n\n` +
+            `Product stock: ${currentStock} → ${newStock}\n` +
+            `Please contact support to receive your payment.`
+          );
+        }
+      } else {
+        // Cash payment - no wallet transaction needed
+        if (user) fetchOrders(user.uid);
+        alert(
+          `✅ Order marked as delivered!\n\n` +
+          `📦 Product stock updated: ${currentStock} → ${newStock}\n` +
+          `💵 Payment method: Cash (already collected)`
+        );
+      }
       
     } catch (err) {
       console.error("Error completing order:", err);
@@ -245,6 +305,12 @@ export default function FarmerOrdersPage() {
           </a>
           <a href="/dashboard/farmer/orders" className="block px-3 py-2 rounded bg-green-100 text-green-800 whitespace-nowrap text-sm lg:text-base">
             Orders
+          </a>
+          <a href="/dashboard/farmer/pricing" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            Market Pricing
+          </a>
+          <a href="/dashboard/farmer/wallet" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            Digital Wallet
           </a>
           <a href="/dashboard/farmer/ratings" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Ratings

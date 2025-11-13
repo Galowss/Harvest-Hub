@@ -823,8 +823,23 @@ export default function FarmerDashboard() {
           <a href="/dashboard/farmer/orders" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Orders
           </a>
+          <a href="/dashboard/farmer/pricing" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            Market Pricing
+          </a>
+          <a href="/dashboard/farmer/wallet" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            Digital Wallet
+          </a>
           <a href="/dashboard/farmer/ratings" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Ratings
+          </a>
+          <a href="/dashboard/community" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            Community Hub
+          </a>
+          <a href="/dashboard/map" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            Farmer Map
+          </a>
+          <a href="/dashboard/farmer/location" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
+            📍 Set Location
           </a>
         </nav>
         
