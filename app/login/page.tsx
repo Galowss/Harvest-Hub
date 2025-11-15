@@ -42,7 +42,9 @@ export default function Login() {
 
       if (userDoc.exists()) {
         const role = userDoc.data().role;
-        if (role === "farmer") {
+        if (role === "admin") {
+          router.push("/dashboard/admin");
+        } else if (role === "farmer") {
           router.push("/dashboard/farmer");
         } else if (role === "user") {
           router.push("/dashboard/user");

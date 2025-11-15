@@ -268,9 +268,6 @@ export default function PricingDashboardPage() {
           <a href="/dashboard/farmer/pricing" className="block px-3 py-2 rounded bg-green-100 text-green-800 whitespace-nowrap text-sm lg:text-base">
             Market Pricing
           </a>
-          <a href="/dashboard/farmer/wallet" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Digital Wallet
-          </a>
           <a href="/dashboard/farmer/ratings" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
             Ratings
           </a>

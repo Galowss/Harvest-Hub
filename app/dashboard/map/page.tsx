@@ -70,6 +70,7 @@ export default function FarmerMapPage() {
   );
   const [searchRadius, setSearchRadius] = useState(10); // km
   const [sortBy, setSortBy] = useState<"distance" | "products">("distance");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -313,36 +314,58 @@ export default function FarmerMapPage() {
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-4 lg:h-screen overflow-y-auto">
-        <h2 className="text-lg sm:text-xl font-bold mb-4 lg:mb-6">
-          HarvestHub
-        </h2>
-        <nav className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2 overflow-x-auto lg:overflow-x-visible">
+      <aside className="w-full lg:w-64 bg-white shadow-md p-3 sm:p-4 lg:h-screen overflow-y-auto">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold">HarvestHub</h2>
+          {/* Mobile Menu Toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+            aria-label="Toggle menu"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {mobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+        </div>
+        
+        {/* Navigation */}
+        <nav className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block space-y-2`}>
           <a
             href={isFarmer ? "/dashboard/farmer" : "/dashboard/user"}
-            className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base"
+            className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
           >
             Dashboard
           </a>
           {isFarmer && (
             <>
               <a
+                href="/dashboard/farmer/profile"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+              >
+                Profile
+              </a>
+              <a
                 href="/dashboard/farmer/orders"
-                className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
               >
                 Orders
               </a>
               <a
                 href="/dashboard/farmer/pricing"
-                className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
               >
                 Market Pricing
               </a>
               <a
-                href="/dashboard/farmer/wallet"
-                className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base"
+                href="/dashboard/farmer/ratings"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
               >
-                Digital Wallet
+                Ratings
               </a>
             </>
           )}
@@ -350,42 +373,48 @@ export default function FarmerMapPage() {
             <>
               <a
                 href="/dashboard/user/cart"
-                className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
               >
                 Cart
               </a>
               <a
                 href="/dashboard/user/orders"
-                className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
               >
                 Orders
               </a>
               <a
-                href="/dashboard/user/wallet"
-                className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base"
+                href="/dashboard/user/rate_farmer"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
               >
-                Digital Wallet
+                Rate Farmer
+              </a>
+              <a
+                href="/dashboard/user/profile"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+              >
+                Profile
               </a>
             </>
           )}
           <a
             href="/dashboard/community"
-            className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base"
+            className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
           >
             Community Hub
           </a>
           <a
             href="/dashboard/map"
-            className="block px-3 py-2 rounded bg-green-100 text-green-800 whitespace-nowrap text-sm lg:text-base"
+            className="block px-3 py-2 rounded bg-green-100 text-green-800 text-sm lg:text-base"
           >
             Farmer Map
           </a>
         </nav>
 
-        <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-200">
+        <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block mt-4 pt-3 sm:pt-4 lg:pt-6 border-t border-gray-200`}>
           <button
             onClick={handleLogout}
-            className="flex items-center space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
+            className="flex items-center justify-center lg:justify-start space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
           >
             <svg
               className="w-4 h-4 lg:w-5 lg:h-5"
