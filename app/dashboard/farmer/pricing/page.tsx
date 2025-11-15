@@ -47,6 +47,9 @@ export default function PricingDashboardPage() {
   const [myProducts, setMyProducts] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<PricingAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [daPrices, setDaPrices] = useState<DAPriceData[]>([]);
   const [forecasts, setForecasts] = useState<Map<string, MarketForecast>>(new Map());
@@ -77,8 +80,21 @@ export default function PricingDashboardPage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    if (!user) return;
+
+    const intervalId = setInterval(() => {
+      console.log("Auto-refreshing market data...");
+      fetchMarketData(user.id);
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(intervalId);
+  }, [user]);
+
   const fetchMarketData = async (farmerId: string) => {
     try {
+      setRefreshing(true);
       // Fetch DA Philippines price data
       const daPriceData = await fetchDAPrices();
       setDaPrices(daPriceData);
@@ -223,8 +239,11 @@ export default function PricingDashboardPage() {
           daReferencePrice: daRefPrice ? parseFloat(daRefPrice.toFixed(2)) : undefined,
         });
       }
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Error fetching market data:", error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -252,30 +271,56 @@ export default function PricingDashboardPage() {
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-4 lg:h-screen overflow-y-auto">
-        <h2 className="text-lg sm:text-xl font-bold mb-4 lg:mb-6">HarvestHub</h2>
-        <nav className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2 overflow-x-auto lg:overflow-x-visible">
-          <a href="/dashboard/farmer" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Dashboard
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white shadow-md p-4 flex items-center justify-between sticky top-0 z-50">
+        <h2 className="text-xl font-bold">HarvestHub</h2>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {isMobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </div>
+
+      {/* Sidebar - Desktop & Mobile Dropdown */}
+      <aside className={`
+        fixed lg:static inset-0 z-40 lg:z-auto
+        w-full lg:w-64 bg-white shadow-md p-4 lg:h-screen overflow-y-auto
+        transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <h2 className="hidden lg:block text-lg sm:text-xl font-bold mb-4 lg:mb-6">HarvestHub</h2>
+        
+        <nav className="flex flex-col space-y-2">
+          <a href="/dashboard/farmer" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            🏠 Dashboard
           </a>
-          <a href="/dashboard/farmer/profile" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Profile
+          <a href="/dashboard/farmer/profile" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            👤 Profile
           </a>
-          <a href="/dashboard/farmer/orders" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Orders
+          <a href="/dashboard/farmer/orders" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            📦 Orders
           </a>
-          <a href="/dashboard/farmer/pricing" className="block px-3 py-2 rounded bg-green-100 text-green-800 whitespace-nowrap text-sm lg:text-base">
-            Market Pricing
+          <a href="/dashboard/farmer/pricing" className="block px-3 py-2 rounded bg-green-100 text-green-800 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            📊 Market Pricing
           </a>
-          <a href="/dashboard/farmer/ratings" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Ratings
+          <a href="/dashboard/farmer/ratings" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            ⭐ Ratings
+          </a>
+          <a href="/dashboard/community" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            🌱 Community Hub
           </a>
         </nav>
 
-        <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-200">
+        <div className="mt-6 pt-4 border-t border-gray-200">
           <button
-            onClick={handleLogout}
+            onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}
             className="flex items-center space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
           >
             <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,11 +331,48 @@ export default function PricingDashboardPage() {
         </div>
       </aside>
 
+      {/* Overlay for mobile menu */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
       <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
         <header className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold mb-2">📊 Real-Time Market Pricing</h1>
-          <p className="text-gray-600">Make informed pricing decisions based on current market trends</p>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h1 className="text-2xl lg:text-3xl font-bold mb-2">📊 Real-Time Market Pricing</h1>
+              <p className="text-gray-600">Make informed pricing decisions based on current market trends</p>
+              {lastUpdated && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Last updated: {lastUpdated.toLocaleTimeString()} • Auto-refreshes every 5 minutes
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => user && fetchMarketData(user.id)}
+              disabled={refreshing}
+              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg
+                className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+          </div>
         </header>
 
         {/* My Pricing Analytics */}

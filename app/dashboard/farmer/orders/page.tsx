@@ -21,6 +21,7 @@ export default function FarmerOrdersPage() {
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   // watch auth state
@@ -293,31 +294,56 @@ export default function FarmerOrdersPage() {
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-4 lg:h-screen overflow-y-auto">
-        <h2 className="text-lg sm:text-xl font-bold mb-4 lg:mb-6">HarvestHub</h2>
-        <nav className="flex lg:flex-col space-x-2 lg:space-x-0 lg:space-y-2 overflow-x-auto lg:overflow-x-visible">
-          <a href="/dashboard/farmer" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Dashboard
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white shadow-md p-4 flex items-center justify-between sticky top-0 z-50">
+        <h2 className="text-xl font-bold">HarvestHub</h2>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {isMobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </div>
+
+      {/* Sidebar - Desktop & Mobile Dropdown */}
+      <aside className={`
+        fixed lg:static inset-0 z-40 lg:z-auto
+        w-full lg:w-64 bg-white shadow-md p-4 lg:h-screen overflow-y-auto
+        transition-transform duration-300 ease-in-out
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <h2 className="hidden lg:block text-lg sm:text-xl font-bold mb-4 lg:mb-6">HarvestHub</h2>
+        <nav className="flex flex-col space-y-2">
+          <a href="/dashboard/farmer" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            🏠 Dashboard
           </a>
-          <a href="/dashboard/farmer/profile" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Profile
+          <a href="/dashboard/farmer/profile" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            👤 Profile
           </a>
-          <a href="/dashboard/farmer/orders" className="block px-3 py-2 rounded bg-green-100 text-green-800 whitespace-nowrap text-sm lg:text-base">
-            Orders
+          <a href="/dashboard/farmer/orders" className="block px-3 py-2 rounded bg-green-100 text-green-800 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            📦 Orders
           </a>
-          <a href="/dashboard/farmer/pricing" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Market Pricing
+          <a href="/dashboard/farmer/pricing" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            📊 Market Pricing
           </a>
-          <a href="/dashboard/farmer/ratings" className="block px-3 py-2 rounded hover:bg-green-100 whitespace-nowrap text-sm lg:text-base">
-            Ratings
+          <a href="/dashboard/farmer/ratings" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            ⭐ Ratings
+          </a>
+          <a href="/dashboard/community" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base" onClick={() => setIsMobileMenuOpen(false)}>
+            🌱 Community Hub
           </a>
         </nav>
         
         {/* Logout Button */}
-        <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-200">
+        <div className="mt-6 pt-4 border-t border-gray-200">
           <button
-            onClick={handleLogout}
+            onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}
             className="flex items-center space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
           >
             <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -327,6 +353,14 @@ export default function FarmerOrdersPage() {
           </button>
         </div>
       </aside>
+
+      {/* Overlay for mobile menu */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
       {/* Main content */}
       <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
