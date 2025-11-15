@@ -1,6 +1,6 @@
 # 🌾 HarvestHub - Agricultural Marketplace Platform
 
-An AI-powered agricultural marketplace connecting farmers directly with consumers. Features include intelligent price forecasting, geospatial mapping, digital wallet system, and community knowledge hub.
+An agricultural marketplace connecting farmers directly with consumers. Features include intelligent price forecasting, geospatial mapping, digital wallet system, and community knowledge hub.
 
 ![Version](https://img.shields.io/badge/version-1.0.0-green)
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.4-black)
@@ -10,7 +10,7 @@ An AI-powered agricultural marketplace connecting farmers directly with consumer
 
 ## ✨ Key Features
 
-- 🤖 **AI Price Forecasting** - Predict product prices and demand
+- 💰 **Price Forecasting** - Predict product prices and demand
 - 🗺️ **Geospatial Mapping** - Find nearby farmers with interactive maps
 - 💳 **Digital Wallet** - Cashless payment system (GCash/PayPal ready)
 - 🌱 **Community Hub** - Share knowledge and connect with farmers
