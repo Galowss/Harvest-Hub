@@ -26,9 +26,10 @@ export default function Navbar() {
           {/* Logo */}
           <Link 
             href="/home" 
-            className="text-lg sm:text-xl lg:text-2xl font-bold hover:opacity-80 transition-opacity flex-shrink-0"
+            className="text-lg sm:text-xl lg:text-2xl font-bold hover:opacity-80 transition-opacity flex-shrink-0 flex items-center gap-2"
           >
-            🌱 HarvestHub
+            <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-10 h-10" />
+            HarvestHub
           </Link>
 
           {/* Desktop Navigation */}

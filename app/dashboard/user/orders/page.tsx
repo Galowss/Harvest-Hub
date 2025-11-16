@@ -266,7 +266,10 @@ export default function OrdersPage() {
       {/* Sidebar */}
       <aside className="w-full lg:w-64 bg-white shadow-md p-3 sm:p-4 lg:h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
-          <h2 className="text-lg sm:text-xl font-bold">HarvestHub</h2>
+          <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+            <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-8 h-8" />
+            HarvestHub
+          </h2>
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
