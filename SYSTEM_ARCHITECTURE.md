@@ -1,7 +1,7 @@
 # 🏗️ HarvestHub System Architecture
 
 ## Overview
-HarvestHub is a full-stack agricultural marketplace platform built with Next.js 15, React 19, and Firebase, featuring AI-powered price forecasting, real-time geospatial mapping, and a comprehensive digital wallet system.
+HarvestHub is a full-stack agricultural marketplace platform built with Next.js 15, React 19, and Firebase, featuring AI-powered price forecasting, real-time geospatial mapping, and Cash on Delivery (COD) payment system.
 
 ---
 
@@ -60,8 +60,8 @@ HarvestHub is a full-stack agricultural marketplace platform built with Next.js 
 │  └──────────────┘  └──────────────┘  └──────────────┘          │
 │                                                                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   Wallet     │  │   Rating     │  │   Location   │          │
-│  │   System     │  │   System     │  │   Services   │          │
+│  │ COD Payment  │  │   Rating     │  │   Location   │          │
+│  │  Processing  │  │   System     │  │   Services   │          │
 │  └──────────────┘  └──────────────┘  └──────────────┘          │
 │                                                                   │
 └────────────────────────────┬────────────────────────────────────┘
@@ -180,24 +180,6 @@ orders/{orderId}
 ├── createdAt: timestamp
 └── updatedAt: timestamp
 
-// Wallets Collection
-wallets/{userId}
-├── balance: number
-├── totalEarnings: number
-├── pendingAmount: number
-├── withdrawalHistory: number
-└── updatedAt: timestamp
-
-// Transactions Collection
-transactions/{transactionId}
-├── userId: string (ref to users)
-├── type: "credit" | "debit" | "withdrawal" | "refund"
-├── amount: number
-├── description: string
-├── orderId: string (optional)
-├── status: "pending" | "completed" | "failed"
-└── createdAt: timestamp
-
 // Ratings Collection
 ratings/{ratingId}
 ├── farmerId: string (ref to users)
@@ -250,8 +232,8 @@ Token Verification on Each Request
 ```javascript
 // Role-Based Access Control (RBAC)
 - Admin: Full access to all collections
-- Farmer: CRUD on own products, orders, wallet
-- User: Read products, CRUD on own orders, cart, wallet
+- Farmer: CRUD on own products, orders (with COD payment)
+- User: Read products, CRUD on own orders, cart
 - Public: No access (authentication required)
 ```
 
@@ -287,15 +269,13 @@ App
 │   │   ├── /orders
 │   │   ├── /pricing (AI Forecasting)
 │   │   ├── /ratings
-│   │   ├── /wallet
 │   │   └── /location
 │   │
 │   ├── /dashboard/user
 │   │   ├── / (Dashboard)
 │   │   ├── /cart
 │   │   ├── /orders
-│   │   ├── /profile
-│   │   └── /wallet
+│   │   └── /profile
 │   │
 │   ├── /dashboard/admin
 │   ├── /dashboard/community
@@ -383,38 +363,40 @@ Farmer List Display
 
 ---
 
-## 💳 Payment & Wallet Architecture
+## 💵 Cash on Delivery (COD) Payment Architecture
 
-### Digital Wallet Flow
+### COD Payment Flow
 ```
-User Top-Up Request
+Order Placement
     ↓
-Payment Gateway (GCash/PayPal)
+Delivery Details Confirmation
     ↓
-Payment Verification
+COD Payment Method Selected
     ↓
-Firestore Wallet Update
+Order Created (status: pending)
     ↓
-Transaction Record Creation
+Farmer Notified (with payment amount)
     ↓
-Balance Reflection
+Buyer Reminded to Prepare Cash
 ```
 
 ### Transaction Flow
 ```
 Order Placement
     ↓
-Wallet Balance Check
+Stock Validation
     ↓
-Debit User Wallet
+Order Created (paymentMethod: COD)
     ↓
-Add to Farmer Pending
+Farmer Accepts & Prepares Order
     ↓
-Order Completion
+Status: Out for Delivery (with cash reminder)
     ↓
-Transfer to Farmer Balance
+Order Completion + Cash Collection
     ↓
-Transaction History Update
+Farmer Keeps Cash Payment
+    ↓
+Order Status: Completed
 ```
 
 ---
@@ -427,14 +409,14 @@ Transaction History Update
 2. Adds to cart
 3. Proceeds to checkout
 4. Selects delivery/pickup
-5. Wallet payment deduction
-6. Order created (status: pending)
-7. Farmer receives notification
+5. Confirms COD payment method
+6. Order created (status: pending, paymentMethod: COD)
+7. Farmer receives notification with payment amount
 8. Farmer processes order
-9. Status updates (out-for-delivery)
-10. Order completed
-11. User can rate farmer
-12. Farmer receives payment
+9. Status updates (out-for-delivery) with cash reminder
+10. Order delivered & cash payment collected
+11. Order marked completed
+12. User can rate farmer
 ```
 
 ### Real-time Updates

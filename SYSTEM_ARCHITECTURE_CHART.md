@@ -17,10 +17,10 @@ graph TD
 |-------|-----------|---------|
 | **Client Layer** | Web Browser, Mobile Browser, Tablet Browser | User interface access points |
 | **Presentation Layer** | Next.js 15, React 19, Tailwind CSS | UI rendering and routing |
-| **Business Logic Layer** | AI Forecasting, Order Management, Wallet System | Core application logic |
+| **Business Logic Layer** | AI Forecasting, Order Management, COD Payment | Core application logic |
 | **Data Access Layer** | Firebase SDK | Database abstraction |
 | **Backend Layer** | Firebase Auth, Firestore, Storage | Cloud services |
-| **External Services** | OpenStreetMap, DA API, Payment Gateway | Third-party integrations |
+| **External Services** | OpenStreetMap, DA API | Third-party integrations |
 
 ---
 
@@ -50,7 +50,7 @@ flowchart TB
         direction LR
         AI["AI Price Forecasting<br/>(Time-series analysis)"]
         ORDER["Order Management<br/>(CRUD operations)"]
-        WALLET["Wallet System<br/>(Balance, transactions)"]
+        PAYMENT["COD Payment Processing<br/>(Cash on Delivery)"]
         RATING["Rating System<br/>(5-star reviews)"]
         LOCATION["Location Services<br/>(Geospatial queries)"]
         MARKET["Market Analytics<br/>(Price trends)"]
@@ -67,7 +67,7 @@ flowchart TB
     subgraph Backend["☁️ BACKEND LAYER (Firebase BaaS)"]
         direction TB
         AUTH["Firebase Authentication<br/>(JWT Tokens)<br/>Email/Password"]
-        FIRESTORE["Cloud Firestore<br/>(NoSQL Database)<br/>Collections: 8<br/>Documents: ~10,000"]
+        FIRESTORE["Cloud Firestore<br/>(NoSQL Database)<br/>Collections: 6<br/>Documents: ~10,000"]
         STORAGE["Firebase Storage<br/>(Blob Storage)<br/>Images, Files"]
         RULES["Security Rules<br/>(firestore.rules)<br/>RBAC: admin/farmer/user"]
     end
@@ -76,7 +76,6 @@ flowchart TB
         direction LR
         OSM["OpenStreetMap<br/>(Map Tiles)<br/>Leaflet.js"]
         DA["DA Philippines API<br/>(Agricultural Prices)<br/>Real-time data"]
-        PAYMENT["Payment Gateway<br/>(GCash, PayPal)<br/>Future integration"]
     end
 
     %% Client to Presentation connections
@@ -93,7 +92,7 @@ flowchart TB
     %% Business logic connections
     HOOKS -->|"Fetch forecasts"| AI
     HOOKS -->|"Manage orders"| ORDER
-    HOOKS -->|"Handle payments"| WALLET
+    HOOKS -->|"Process COD"| PAYMENT
     HOOKS -->|"Submit ratings"| RATING
     HOOKS -->|"Get locations"| LOCATION
     HOOKS -->|"Analyze market"| MARKET
@@ -101,7 +100,7 @@ flowchart TB
     %% Data access connections
     AI -->|"API calls"| SDK
     ORDER -->|"API calls"| SDK
-    WALLET -->|"API calls"| SDK
+    PAYMENT -->|"API calls"| SDK
     RATING -->|"API calls"| SDK
     LOCATION -->|"API calls"| SDK
     MARKET -->|"API calls"| SDK
@@ -124,7 +123,6 @@ flowchart TB
     %% External services
     LOCATION -->|"HTTP API"| OSM
     AI -->|"HTTP API"| DA
-    WALLET -->|"HTTP API"| PAYMENT
 
     %% Styling
     classDef clientStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:3px,color:#000
@@ -136,7 +134,7 @@ flowchart TB
     
     class WEB,MOBILE,TABLET clientStyle
     class NEXT,ROUTER,COMPONENTS,HOOKS,UTILS presentationStyle
-    class AI,ORDER,WALLET,RATING,LOCATION,MARKET businessStyle
+    class AI,ORDER,PAYMENT,RATING,LOCATION,MARKET businessStyle
     class SDK,AUTH_SERVICE,DB_SERVICE,STORAGE_SERVICE dataAccessStyle
     class AUTH,FIRESTORE,STORAGE,RULES backendStyle
     class OSM,DA,PAYMENT externalStyle
@@ -216,12 +214,12 @@ flowchart TB
    - Cancel orders (refund processing)
    - Order history and filtering
 
-3. **Wallet System**
-   - Balance management (credit/debit)
-   - Transaction history
-   - Withdrawal processing
-   - Payment verification
-   - Pending amount tracking
+3. **COD Payment Processing**
+   - Cash on Delivery method selection
+   - Payment amount display
+   - Payment reminders for buyers
+   - Cash collection tracking for farmers
+   - Order completion confirmation
 
 4. **Rating System**
    - Submit ratings (1-5 stars + comment)
@@ -304,7 +302,7 @@ flowchart TB
    - Type: NoSQL document database
    - Protocol: gRPC over HTTPS
    - Structure: Collections → Documents → Fields
-   - Collections: 8 (users, products, orders, wallets, transactions, ratings, community_posts, community_comments)
+   - Collections: 6 (users, products, orders, ratings, community_posts, community_comments)
    - Estimated docs: ~10,000
    - Features:
      - Real-time synchronization
@@ -405,22 +403,20 @@ allow write: if isOwner(buyerId) || isOwner(farmerId) || isAdmin();
 3. BUSINESS LOGIC LAYER
    → Order Management service validates:
      - Product availability
-     - User wallet balance
      - Delivery address
-   → Wallet System calculates total amount
+   → COD Payment Processing calculates total amount
+   → Payment method set to "Cash on Delivery"
 
 4. DATA ACCESS LAYER
    → Firebase SDK prepares Firestore transaction:
-     - Debit user wallet
-     - Create order document
-     - Add to farmer pending balance
-     - Create transaction record
+     - Create order document (paymentMethod: COD)
+     - Update product stock
+     - Record order timestamp
 
 5. BACKEND LAYER
    → Firestore Security Rules validate:
      - User is authenticated ✓
-     - User owns the wallet ✓
-     - Sufficient balance ✓
+     - User is the order creator ✓
    → Firestore commits transaction
    → Order document created with ID: "order_12345"
 
@@ -486,15 +482,12 @@ erDiagram
     USERS ||--o{ PRODUCTS : "creates (farmerId)"
     USERS ||--o{ ORDERS : "places as buyer (buyerId)"
     USERS ||--o{ ORDERS : "receives as farmer (farmerId)"
-    USERS ||--|| WALLETS : "owns (userId)"
-    USERS ||--o{ TRANSACTIONS : "executes (userId)"
     USERS ||--o{ RATINGS : "gives as rater (userId)"
     USERS ||--o{ RATINGS : "receives as farmer (farmerId)"
     USERS ||--o{ COMMUNITY_POSTS : "authors (authorId)"
     USERS ||--o{ COMMUNITY_COMMENTS : "writes (authorId)"
     PRODUCTS ||--o{ ORDERS : "included in (productId)"
     ORDERS ||--o{ RATINGS : "generates after completion (orderId)"
-    ORDERS ||--o{ TRANSACTIONS : "triggers payment (orderId)"
     COMMUNITY_POSTS ||--o{ COMMUNITY_COMMENTS : "contains (postId)"
 
     USERS {
@@ -535,32 +528,13 @@ erDiagram
         number price "Price at order time"
         number totalAmount "quantity * price"
         string status "pending/out-for-delivery/completed/cancelled"
+        string paymentMethod "Cash on Delivery (COD)"
         string deliveryMethod "pickup/delivery"
         string deliveryAddress "Full delivery address"
         string buyerEmail "Snapshot of buyer email"
         boolean reviewed "Has user rated?"
         timestamp createdAt "Order placement date"
         timestamp updatedAt "Last status update"
-    }
-
-    WALLETS {
-        string userId PK-FK "Primary & Foreign Key -> USERS.userId"
-        number balance "Available balance (₱)"
-        number totalEarnings "Lifetime earnings (₱)"
-        number pendingAmount "Orders pending completion (₱)"
-        number withdrawalHistory "Total withdrawn (₱)"
-        timestamp updatedAt "Last transaction date"
-    }
-
-    TRANSACTIONS {
-        string transactionId PK "Primary Key - Auto-generated"
-        string userId FK "Foreign Key -> USERS.userId"
-        string type "credit/debit/withdrawal/refund"
-        number amount "Transaction amount (₱)"
-        string description "Transaction description"
-        string orderId FK-OPT "Optional FK -> ORDERS.orderId"
-        string status "pending/completed/failed"
-        timestamp createdAt "Transaction date"
     }
 
     RATINGS {
@@ -617,7 +591,6 @@ erDiagram
 | Symbol | Meaning | Example |
 |--------|---------|---------|
 | `||--o{` | One to Many | One USER creates many PRODUCTS |
-| `||--||` | One to One | One USER owns one WALLET |
 | `o{--o{` | Many to Many | Not used (requires junction table) |
 
 ### 📈 Collection Relationships Explained
@@ -634,44 +607,29 @@ erDiagram
    - FK: `orders.farmerId` → `users.userId`
    - Query: "Get all orders for user X (as buyer or seller)"
 
-3. **USERS ↔ WALLETS** (One-to-One)
-   - Each user has exactly one wallet
-   - FK: `wallets.userId` → `users.userId`
-   - Query: "Get wallet for user X"
-
-4. **USERS → TRANSACTIONS** (One-to-Many)
-   - One user can have multiple transactions
-   - FK: `transactions.userId` → `users.userId`
-   - Query: "Get transaction history for user X"
-
-5. **USERS → RATINGS** (One-to-Many, Dual)
+3. **USERS → RATINGS** (One-to-Many, Dual)
    - One user can give multiple ratings
    - One farmer can receive multiple ratings
    - FK: `ratings.userId` → `users.userId` (rater)
    - FK: `ratings.farmerId` → `users.userId` (rated farmer)
    - Query: "Get all ratings by user X" or "Get all ratings for farmer Y"
 
-6. **PRODUCTS → ORDERS** (One-to-Many)
+4. **PRODUCTS → ORDERS** (One-to-Many)
    - One product can be in multiple orders
    - FK: `orders.productId` → `products.productId`
    - Query: "Get all orders for product X"
 
-7. **ORDERS → RATINGS** (One-to-One)
+5. **ORDERS → RATINGS** (One-to-One)
    - Each completed order can have one rating
    - FK: `ratings.orderId` → `orders.orderId`
    - Query: "Get rating for order X"
 
-8. **ORDERS → TRANSACTIONS** (One-to-Many)
-   - One order can trigger multiple transactions (payment, refund)
-   - FK: `transactions.orderId` → `orders.orderId`
-   - Query: "Get all transactions for order X"
-
-9. **USERS → COMMUNITY_POSTS** (One-to-Many)
+6. **USERS → COMMUNITY_POSTS** (One-to-Many)
    - One user can create multiple posts
    - FK: `community_posts.authorId` → `users.userId`
    - Query: "Get all posts by user X"
 
-10. **COMMUNITY_POSTS → COMMUNITY_COMMENTS** (One-to-Many)
+7. **COMMUNITY_POSTS → COMMUNITY_COMMENTS** (One-to-Many)
     - One post can have multiple comments
     - FK: `community_comments.postId` → `community_posts.postId`
     - Query: "Get all comments for post X"
@@ -714,8 +672,7 @@ graph TD
     
     FARMER_PERM --> FP1[Create Products]
     FARMER_PERM --> FP2[Manage Orders]
-    FARMER_PERM --> FP3[View Wallet]
-    FARMER_PERM --> FP4[Set Location]
+    FARMER_PERM --> FP3[Set Location]
     
     USER_PERM --> UP1[Browse Products]
     USER_PERM --> UP2[Place Orders]
@@ -732,11 +689,9 @@ graph TD
 | Create Products | ✅ | ✅ | ❌ |
 | Edit Own Products | ✅ | ✅ | ❌ |
 | View All Products | ✅ | ✅ | ✅ |
-| Place Orders | ✅ | ❌ | ✅ |
+| Place Orders (COD) | ✅ | ❌ | ✅ |
 | Manage Orders (Seller) | ✅ | ✅ | ❌ |
 | View Own Orders | ✅ | ✅ | ✅ |
-| Access Wallet | ✅ | ✅ | ✅ |
-| Withdraw Funds | ✅ | ✅ | ❌ |
 | Rate Farmers | ✅ | ❌ | ✅ |
 | Set Location | ✅ | ✅ | ✅ |
 | Community Posts | ✅ | ✅ | ✅ |
