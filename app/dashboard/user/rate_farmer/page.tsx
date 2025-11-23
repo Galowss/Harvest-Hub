@@ -125,9 +125,9 @@ export default function RateFarmer() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
-      {/* ✅ Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-3 sm:p-4 lg:h-screen overflow-y-auto">
+    <div className="flex flex-col lg:flex-row h-screen bg-gradient-to-br from-gray-50 via-yellow-50 to-orange-50">
+      {/* Sidebar */}
+      <aside className="w-full lg:w-64 bg-white/80 backdrop-blur-sm shadow-xl border-r border-yellow-100 p-3 sm:p-4 lg:h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-8 h-8" />
@@ -187,8 +187,8 @@ export default function RateFarmer() {
         </header>
 
         {/* Hero Section */}
-        <section className="bg-green-100 p-4 sm:p-6 rounded-lg mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold mb-2">Rate Your Farmers</h1>
+        <section className="bg-gradient-to-r from-yellow-100 via-orange-100 to-amber-100 p-4 sm:p-6 rounded-xl shadow-md mb-4 sm:mb-6 border border-yellow-200">
+          <h1 className="text-xl sm:text-2xl font-bold mb-2 bg-gradient-to-r from-yellow-700 to-orange-600 bg-clip-text text-transparent">Rate Your Farmers</h1>
           <p className="text-gray-700 text-sm sm:text-base">
             Select a farmer below to leave a rating and review for your
             experience.

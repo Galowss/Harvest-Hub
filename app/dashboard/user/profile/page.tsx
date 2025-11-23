@@ -139,9 +139,9 @@ export default function UserProfilePage() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
+    <div className="flex flex-col lg:flex-row h-screen bg-gradient-to-br from-gray-50 via-teal-50 to-cyan-50">
       {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-3 sm:p-4 lg:h-screen overflow-y-auto">
+      <aside className="w-full lg:w-64 bg-white/80 backdrop-blur-sm shadow-xl border-r border-teal-100 p-3 sm:p-4 lg:h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-8 h-8" />

@@ -363,7 +363,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-50 relative">
+    <div className="flex flex-col lg:flex-row h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 relative">
       {/* Loading Overlay */}
       {deleting && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -377,7 +377,7 @@ export default function AdminDashboard() {
       )}
 
       {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-3 sm:p-4 lg:h-screen overflow-y-auto">
+      <aside className="w-full lg:w-64 bg-white/80 backdrop-blur-sm shadow-xl border-r border-indigo-100 p-3 sm:p-4 lg:h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <h2 className="text-lg sm:text-xl font-bold">Admin Panel</h2>
           <button
