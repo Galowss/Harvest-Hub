@@ -277,10 +277,16 @@ export default function CommunityHubPage() {
             href={isFarmer ? "/dashboard/farmer" : "/dashboard/user"}
             className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
           >
-            Dashboard
+            Home
           </a>
           {isFarmer && (
             <>
+              <a
+                href="/dashboard/farmer/analytics"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+              >
+                Analytics
+              </a>
               <a
                 href="/dashboard/farmer/profile"
                 className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
@@ -305,6 +311,12 @@ export default function CommunityHubPage() {
               >
                 Ratings
               </a>
+              <a
+                href="/dashboard/farmer/wallet"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+              >
+                Wallet
+              </a>
             </>
           )}
           {!isFarmer && (
@@ -320,6 +332,12 @@ export default function CommunityHubPage() {
                 className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
               >
                 Orders
+              </a>
+              <a
+                href="/dashboard/user/wallet"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+              >
+                Wallet
               </a>
               <a
                 href="/dashboard/user/rate_farmer"
@@ -340,6 +358,12 @@ export default function CommunityHubPage() {
             className="block px-3 py-2 rounded bg-green-100 text-green-800 text-sm lg:text-base"
           >
             Community Hub
+          </a>
+          <a
+            href="/dashboard/map"
+            className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+          >
+            Farmer Map
           </a>
         </nav>
 

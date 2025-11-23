@@ -289,13 +289,16 @@ export default function OrdersPage() {
         {/* Navigation */}
         <nav className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block space-y-2`}>
           <Link href="/dashboard/user" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
-            Dashboard
+            Home
           </Link>
           <Link href="/dashboard/user/cart" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
             Cart
           </Link>
           <Link href="/dashboard/user/orders" className="block px-3 py-2 rounded bg-green-100 text-green-800 text-sm lg:text-base">
             Orders
+          </Link>
+          <Link href="/dashboard/user/wallet" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
+            Wallet
           </Link>
           <Link href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
             Rate Farmer

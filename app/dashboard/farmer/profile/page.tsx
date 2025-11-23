@@ -310,7 +310,13 @@ export default function FarmerProfile() {
             href="/dashboard/farmer"
             className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
           >
-            Dashboard
+            Home
+          </a>
+          <a
+            href="/dashboard/farmer/analytics"
+            className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+          >
+            Analytics
           </a>
           <a
             href="/dashboard/farmer/profile"
@@ -337,10 +343,22 @@ export default function FarmerProfile() {
             Ratings
           </a>
           <a
+            href="/dashboard/farmer/wallet"
+            className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+          >
+            Wallet
+          </a>
+          <a
             href="/dashboard/community"
             className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
           >
             Community Hub
+          </a>
+          <a
+            href="/dashboard/map"
+            className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+          >
+            Farmer Map
           </a>
         </nav>
         

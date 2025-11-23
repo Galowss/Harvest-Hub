@@ -166,13 +166,16 @@ export default function UserProfilePage() {
         {/* Navigation */}
         <nav className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block space-y-2`}>
           <a href="/dashboard/user" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
-            Dashboard
+            Home
           </a>
           <a href="/dashboard/user/cart" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
             Cart
           </a>
           <a href="/dashboard/user/orders" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
             Orders
+          </a>
+          <a href="/dashboard/user/wallet" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
+            Wallet
           </a>
           <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
             Rate Farmer

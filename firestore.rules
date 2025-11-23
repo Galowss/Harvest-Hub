@@ -129,5 +129,27 @@ service cloud.firestore {
       // Authors can delete their own comments
       allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
     }
+
+    // 💰 WALLETS COLLECTION
+    match /wallets/{userId} {
+      // Users can read their own wallet
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Users can create their own wallet
+      allow create: if request.auth != null && request.auth.uid == userId && request.resource.data.userId == userId;
+      // Users can update their own wallet balance
+      allow update: if request.auth != null && request.auth.uid == userId;
+      // Admins can read and update any wallet
+      allow read, update: if isAdmin();
+    }
+
+    // 💳 WALLET TRANSACTIONS COLLECTION
+    match /wallet_transactions/{transactionId} {
+      // Users can read their own transactions
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      // Users can create transactions for themselves
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Admins can read all transactions
+      allow read: if isAdmin();
+    }
   }
 }

@@ -397,7 +397,7 @@ export default function AdminDashboard() {
 
         <nav className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block space-y-2`}>
           <a href="/dashboard/admin" className="block px-3 py-2 rounded bg-green-100 text-green-800 text-sm lg:text-base">
-            Dashboard
+            Home
           </a>
         </nav>
 

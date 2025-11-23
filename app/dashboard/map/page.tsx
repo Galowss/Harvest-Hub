@@ -342,10 +342,16 @@ export default function FarmerMapPage() {
             href={isFarmer ? "/dashboard/farmer" : "/dashboard/user"}
             className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
           >
-            Dashboard
+            Home
           </a>
           {isFarmer && (
             <>
+              <a
+                href="/dashboard/farmer/analytics"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+              >
+                Analytics
+              </a>
               <a
                 href="/dashboard/farmer/profile"
                 className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
@@ -387,6 +393,12 @@ export default function FarmerMapPage() {
                 Orders
               </a>
               <a
+                href="/dashboard/user/wallet"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+              >
+                Wallet
+              </a>
+              <a
                 href="/dashboard/user/rate_farmer"
                 className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
               >
@@ -399,6 +411,14 @@ export default function FarmerMapPage() {
                 Profile
               </a>
             </>
+          )}
+          {isFarmer && (
+            <a
+              href="/dashboard/farmer/wallet"
+              className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+            >
+              Wallet
+            </a>
           )}
           <a
             href="/dashboard/community"

@@ -28,10 +28,14 @@ function OrderSummaryContent() {
   const [deliveryOption, setDeliveryOption] = useState<'delivery' | 'pickup'>('delivery');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryLocation, setDeliveryLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [deliveryDate, setDeliveryDate] = useState('');
+  const [deliveryTime, setDeliveryTime] = useState('');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
   const [showMap, setShowMap] = useState(false);
   const [processingOrder, setProcessingOrder] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'wallet'>('cod');
+  const [walletBalance, setWalletBalance] = useState(0);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
@@ -58,6 +62,13 @@ function OrderSummaryContent() {
       }
       setItems(fetched);
       
+      // Get wallet balance
+      const walletRef = doc(db, "wallets", currentUser.uid);
+      const walletSnap = await getDoc(walletRef);
+      if (walletSnap.exists()) {
+        setWalletBalance(walletSnap.data().balance || 0);
+      }
+      
       setLoading(false);
     });
     return () => unsubscribe();
@@ -72,12 +83,22 @@ function OrderSummaryContent() {
       alert("Please enter a delivery address or select a location on the map.");
       return;
     }
+    if (deliveryOption === 'delivery' && (!deliveryDate || !deliveryTime)) {
+      alert("Please select delivery date and time.");
+      return;
+    }
     if (deliveryOption === 'pickup' && (!pickupDate || !pickupTime)) {
       alert("Please select pickup date and time.");
       return;
     }
     
     const totalAmount = calculateTotal();
+    
+    // Check wallet balance if paying with wallet
+    if (paymentMethod === 'wallet' && walletBalance < totalAmount) {
+      alert(`Insufficient wallet balance. Your balance is ₱${walletBalance.toFixed(2)} but order total is ₱${totalAmount.toFixed(2)}`);
+      return;
+    }
     
     setProcessingOrder(true);
     
@@ -94,11 +115,14 @@ function OrderSummaryContent() {
           status: "pending",
           createdAt: new Date(),
           deliveryOption,
-          paymentMethod: 'cash',
-          paymentStatus: 'pending',
+          paymentMethod: paymentMethod,
+          paymentStatus: paymentMethod === 'wallet' ? 'completed' : 'pending',
         };
         if (deliveryOption === 'delivery') {
           orderData.deliveryAddress = deliveryAddress;
+          orderData.deliveryDate = deliveryDate;
+          orderData.deliveryTime = deliveryTime;
+          orderData.deliveryDateTime = new Date(`${deliveryDate}T${deliveryTime}`);
           orderData.requiresDelivery = true;
           if (deliveryLocation) {
             orderData.deliveryLocation = deliveryLocation;
@@ -114,7 +138,29 @@ function OrderSummaryContent() {
         await deleteDoc(doc(db, "cart", item.id));
       }
       
-      alert('Order placed successfully! Payment will be collected on delivery/pickup.');
+      // If paid with wallet, deduct from balance and create transaction
+      if (paymentMethod === 'wallet') {
+        const walletRef = doc(db, "wallets", user.id);
+        await updateDoc(walletRef, {
+          balance: increment(-totalAmount),
+          updatedAt: new Date()
+        });
+        
+        // Create wallet transaction
+        await addDoc(collection(db, "wallet_transactions"), {
+          userId: user.id,
+          type: 'payment',
+          amount: totalAmount,
+          description: `Payment for ${items.length} item(s)`,
+          status: 'completed',
+          createdAt: new Date()
+        });
+      }
+      
+      const message = paymentMethod === 'wallet' 
+        ? 'Order placed and paid successfully!' 
+        : 'Order placed successfully! Payment will be collected on delivery/pickup.';
+      alert(message);
       router.push("/dashboard/user/orders");
     } catch (err) {
       console.error("Error placing order:", err);
@@ -160,25 +206,51 @@ function OrderSummaryContent() {
           </button>
         </div>
         {deliveryOption === 'delivery' && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Delivery Address <span className="text-red-500">*</span></label>
-            <textarea
-              value={deliveryAddress}
-              onChange={e => setDeliveryAddress(e.target.value)}
-              className="w-full p-2 border rounded mb-2"
-              placeholder="Enter your complete delivery address"
-              rows={3}
-              required
-            />
-            
-            <button
-              type="button"
-              onClick={() => setShowMap(!showMap)}
-              className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-            >
-              <span>📍</span>
-              <span>{showMap ? 'Hide Map' : 'Pin Location on Map'}</span>
-            </button>
+          <div className="mb-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Delivery Address <span className="text-red-500">*</span></label>
+              <textarea
+                value={deliveryAddress}
+                onChange={e => setDeliveryAddress(e.target.value)}
+                className="w-full p-2 border rounded mb-2"
+                placeholder="Enter your complete delivery address"
+                rows={3}
+                required
+              />
+              
+              <button
+                type="button"
+                onClick={() => setShowMap(!showMap)}
+                className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <span>📍</span>
+                <span>{showMap ? 'Hide Map' : 'Pin Location on Map'}</span>
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-2">Delivery Date <span className="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  value={deliveryDate}
+                  onChange={e => setDeliveryDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-2">Delivery Time <span className="text-red-500">*</span></label>
+                <input
+                  type="time"
+                  value={deliveryTime}
+                  onChange={e => setDeliveryTime(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+            </div>
 
             {showMap && (
               <div className="mt-4">
@@ -237,16 +309,74 @@ function OrderSummaryContent() {
       {/* Payment Information */}
       <div className="mb-6 bg-white rounded shadow p-4">
         <h2 className="text-lg font-semibold mb-3">💳 Payment Method</h2>
-        <div className="p-4 border-2 border-blue-500 bg-blue-50 rounded-lg">
+        
+        {/* Wallet Option */}
+        <div
+          className={`p-4 border-2 rounded-lg mb-3 cursor-pointer transition-all ${
+            paymentMethod === 'wallet'
+              ? 'border-purple-500 bg-purple-50'
+              : 'border-gray-200 bg-white hover:border-purple-300'
+          }`}
+          onClick={() => setPaymentMethod('wallet')}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                paymentMethod === 'wallet'
+                  ? 'border-purple-500 bg-purple-500'
+                  : 'border-gray-300 bg-white'
+              }`}>
+                {paymentMethod === 'wallet' && (
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-800">HarvestHub Wallet</p>
+                <p className="text-sm text-gray-600">
+                  Available: ₱{walletBalance.toFixed(2)}
+                  {walletBalance < calculateTotal() && (
+                    <span className="text-red-600 ml-2">(Insufficient balance)</span>
+                  )}
+                </p>
+              </div>
+            </div>
+            <svg className="w-8 h-8 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+              <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+        </div>
+
+        {/* COD Option */}
+        <div
+          className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+            paymentMethod === 'cod'
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-200 bg-white hover:border-blue-300'
+          }`}
+          onClick={() => setPaymentMethod('cod')}
+        >
           <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
+            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+              paymentMethod === 'cod'
+                ? 'border-blue-500 bg-blue-500'
+                : 'border-gray-300 bg-white'
+            }`}>
+              {paymentMethod === 'cod' && (
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              )}
             </div>
             <div>
               <p className="font-semibold text-gray-800">
@@ -258,6 +388,18 @@ function OrderSummaryContent() {
             </div>
           </div>
         </div>
+
+        {paymentMethod === 'wallet' && walletBalance < calculateTotal() && (
+          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              💡 Need to top up? Visit{" "}
+              <a href="/dashboard/user/wallet" className="font-semibold underline">
+                My Wallet
+              </a>{" "}
+              to add funds
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex gap-3">

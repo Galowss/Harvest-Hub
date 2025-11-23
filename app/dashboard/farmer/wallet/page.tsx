@@ -13,6 +13,7 @@ import {
   getDoc,
   addDoc,
   updateDoc,
+  setDoc,
   orderBy,
   limit,
 } from "firebase/firestore";
@@ -84,11 +85,41 @@ export default function WalletPage() {
       const ordersSnapshot = await getDocs(ordersQuery);
 
       let totalEarnings = 0;
-      ordersSnapshot.forEach((doc) => {
-        const orderData = doc.data();
+      let walletPayments = 0;
+      const orderTransactions: Transaction[] = [];
+      
+      for (const orderDoc of ordersSnapshot.docs) {
+        const orderData = orderDoc.data();
         const amount = (parseFloat(orderData.price) || 0) * (parseInt(orderData.quantity) || 1);
         totalEarnings += amount;
-      });
+        
+        // Track wallet payments separately
+        if (orderData.paymentMethod === 'wallet') {
+          walletPayments += amount;
+          
+          // Add to transactions list
+          orderTransactions.push({
+            id: orderDoc.id,
+            type: 'credit',
+            amount: amount,
+            description: `Wallet payment for ${orderData.name} (Qty: ${orderData.quantity})`,
+            orderId: orderDoc.id,
+            status: 'completed',
+            createdAt: orderData.createdAt
+          });
+        } else {
+          // Add COD orders to transactions too
+          orderTransactions.push({
+            id: orderDoc.id,
+            type: 'credit',
+            amount: amount,
+            description: `COD payment for ${orderData.name} (Qty: ${orderData.quantity})`,
+            orderId: orderDoc.id,
+            status: 'completed',
+            createdAt: orderData.createdAt
+          });
+        }
+      }
 
       // Fetch pending orders
       const pendingQuery = query(
@@ -118,21 +149,24 @@ export default function WalletPage() {
         withdrawalHistory = walletData.totalWithdrawals || 0;
       } else {
         // Create wallet document if it doesn't exist
-        await updateDoc(walletRef, {
-          balance: totalEarnings,
-          totalEarnings,
-          totalWithdrawals: 0,
-          lastUpdated: new Date(),
-        }).catch(async () => {
-          // If update fails (doc doesn't exist), create it
-          await addDoc(collection(db, "wallets"), {
-            farmerId,
+        try {
+          await updateDoc(walletRef, {
+            userId: farmerId,
             balance: totalEarnings,
             totalEarnings,
             totalWithdrawals: 0,
             lastUpdated: new Date(),
           });
-        });
+        } catch (error) {
+          // If update fails (doc doesn't exist), use setDoc instead
+          await setDoc(walletRef, {
+            userId: farmerId,
+            balance: totalEarnings,
+            totalEarnings,
+            totalWithdrawals: 0,
+            lastUpdated: new Date(),
+          });
+        }
       }
 
       setWallet({
@@ -142,21 +176,28 @@ export default function WalletPage() {
         withdrawalHistory,
       });
 
-      // Fetch transaction history
+      // Fetch withdrawal transactions from wallet_transactions collection
       const txQuery = query(
-        collection(db, "transactions"),
+        collection(db, "wallet_transactions"),
         where("userId", "==", farmerId),
         orderBy("createdAt", "desc"),
         limit(50)
       );
       const txSnapshot = await getDocs(txQuery);
 
-      const txData: Transaction[] = txSnapshot.docs.map((doc) => ({
+      const withdrawalTxData: Transaction[] = txSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       } as Transaction));
 
-      setTransactions(txData);
+      // Combine order transactions with withdrawal transactions
+      const allTransactions = [...orderTransactions, ...withdrawalTxData].sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() || 0;
+        const bTime = b.createdAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+
+      setTransactions(allTransactions);
     } catch (error) {
       console.error("Error fetching wallet data:", error);
     }
@@ -180,7 +221,7 @@ export default function WalletPage() {
 
     try {
       // Create withdrawal transaction
-      await addDoc(collection(db, "transactions"), {
+      await addDoc(collection(db, "wallet_transactions"), {
         userId: user.id,
         type: "withdrawal",
         amount: amount,
@@ -255,7 +296,13 @@ export default function WalletPage() {
             href="/dashboard/farmer"
             className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
           >
-            Dashboard
+            Home
+          </a>
+          <a
+            href="/dashboard/farmer/analytics"
+            className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+          >
+            Analytics
           </a>
           <a
             href="/dashboard/farmer/profile"
@@ -345,16 +392,21 @@ export default function WalletPage() {
               <p className="text-xs text-gray-500 mt-2">All-time earnings</p>
             </div>
 
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-lg">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm opacity-90">Wallet Payments</p>
+                <span className="text-2xl">💰</span>
+              </div>
+              <p className="text-3xl font-bold">
+                ₱{transactions.filter(t => t.type === 'credit' && t.description.includes('Wallet payment')).reduce((sum, t) => sum + t.amount, 0).toFixed(2)}
+              </p>
+              <p className="text-xs opacity-90 mt-2">Paid via e-wallet</p>
+            </div>
+
             <div className="bg-white p-6 rounded-lg shadow">
               <p className="text-sm text-gray-600 mb-1">Pending Amount</p>
               <p className="text-3xl font-bold text-orange-600">₱{wallet.pendingAmount.toFixed(2)}</p>
               <p className="text-xs text-gray-500 mt-2">From pending orders</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow">
-              <p className="text-sm text-gray-600 mb-1">Total Withdrawals</p>
-              <p className="text-3xl font-bold text-purple-600">₱{wallet.withdrawalHistory.toFixed(2)}</p>
-              <p className="text-xs text-gray-500 mt-2">Lifetime withdrawals</p>
             </div>
           </div>
         </section>
@@ -448,11 +500,12 @@ export default function WalletPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                            tx.type === "credit" ? "bg-green-100 text-green-800" :
-                            tx.type === "withdrawal" ? "bg-purple-100 text-purple-800" :
-                            tx.type === "refund" ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-800"
+                            tx.type === "credit" ? (tx.description.includes('Wallet payment') ? "bg-purple-100 text-purple-800" : "bg-green-100 text-green-800") :
+                            tx.type === "withdrawal" ? "bg-blue-100 text-blue-800" :
+                            tx.type === "refund" ? "bg-orange-100 text-orange-800" : "bg-gray-100 text-gray-800"
                           }`}>
-                            {tx.type === "credit" && "💰 Payment"}
+                            {tx.type === "credit" && tx.description.includes('Wallet payment') && "💰 Wallet"}
+                            {tx.type === "credit" && !tx.description.includes('Wallet payment') && "💵 COD"}
                             {tx.type === "withdrawal" && "🏦 Withdrawal"}
                             {tx.type === "refund" && "↩️ Refund"}
                             {tx.type === "debit" && "📤 Debit"}
