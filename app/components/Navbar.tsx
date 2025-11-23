@@ -20,41 +20,41 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-green-700 text-white shadow-lg sticky top-0 z-50">
+    <nav className="bg-gradient-to-r from-green-700 via-emerald-700 to-teal-700 text-white shadow-xl sticky top-0 z-50 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo */}
           <Link 
             href="/home" 
-            className="text-lg sm:text-xl lg:text-2xl font-bold hover:opacity-80 transition-opacity flex-shrink-0 flex items-center gap-2"
+            className="text-lg sm:text-xl lg:text-2xl font-bold hover:opacity-90 transition-all hover:scale-105 flex-shrink-0 flex items-center gap-2"
           >
-            <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-10 h-10" />
-            HarvestHub
+            <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-10 h-10 drop-shadow-lg" />
+            <span className="drop-shadow-md">HarvestHub</span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-3 lg:space-x-6">
             <Link 
               href="/home" 
-              className="px-2 py-1 hover:bg-green-600 rounded transition-colors text-sm lg:text-base"
+              className="px-3 py-2 hover:bg-white/10 rounded-lg transition-all hover:shadow-md text-sm lg:text-base"
             >
               Home
             </Link>
             <Link 
               href="/products" 
-              className="px-2 py-1 hover:bg-green-600 rounded transition-colors text-sm lg:text-base"
+              className="px-3 py-2 hover:bg-white/10 rounded-lg transition-all hover:shadow-md text-sm lg:text-base"
             >
               Products
             </Link>
             <Link 
               href="/farmers" 
-              className="px-2 py-1 hover:bg-green-600 rounded transition-colors text-sm lg:text-base"
+              className="px-3 py-2 hover:bg-white/10 rounded-lg transition-all hover:shadow-md text-sm lg:text-base"
             >
               Farmers
             </Link>
             <Link 
               href="/cart" 
-              className="px-2 py-1 hover:bg-green-600 rounded transition-colors text-sm lg:text-base"
+              className="px-3 py-2 hover:bg-white/10 rounded-lg transition-all hover:shadow-md text-sm lg:text-base"
             >
               Cart
             </Link>
@@ -62,7 +62,7 @@ export default function Navbar() {
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="bg-red-600 px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg hover:bg-red-700 transition-colors text-sm lg:text-base font-medium"
+              className="bg-red-600 px-3 lg:px-4 py-1.5 lg:py-2 rounded-lg hover:bg-red-700 transition-all hover:shadow-lg hover:scale-105 text-sm lg:text-base font-medium"
             >
               Logout
             </button>
@@ -92,7 +92,7 @@ export default function Navbar() {
           isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
-        <div className="px-3 pt-2 pb-4 space-y-1 bg-green-800 shadow-inner">
+        <div className="px-3 pt-2 pb-4 space-y-1 bg-gradient-to-b from-green-800 to-emerald-900 shadow-inner">
           <Link 
             href="/home" 
             className="block px-3 py-2.5 text-base font-medium hover:bg-green-700 active:bg-green-600 rounded-md transition-colors"

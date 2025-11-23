@@ -193,9 +193,9 @@ export default function UserDashboard() {
     );
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
+    <div className="flex flex-col lg:flex-row h-screen bg-gradient-to-br from-gray-50 via-green-50 to-emerald-50">
       {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-3 sm:p-4 lg:h-screen overflow-y-auto">
+      <aside className="w-full lg:w-64 bg-white/80 backdrop-blur-sm shadow-xl border-r border-green-100 p-3 sm:p-4 lg:h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-8 h-8" />
@@ -287,7 +287,7 @@ export default function UserDashboard() {
               <button
                 onClick={handleRefresh}
                 disabled={fetchingProducts}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm lg:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 text-sm lg:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl hover:scale-105"
               >
                 <svg className={`w-4 h-4 ${fetchingProducts ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -315,7 +315,7 @@ export default function UserDashboard() {
         </header>
 
         {/* Welcome */}
-        <section className="bg-green-100 p-4 lg:p-6 rounded-lg mb-4 lg:mb-6">
+        <section className="bg-gradient-to-r from-green-100 via-emerald-100 to-teal-100 p-4 lg:p-6 rounded-xl shadow-md mb-4 lg:mb-6 border border-green-200">
           <h1 className="text-xl lg:text-2xl font-bold">
             Welcome, {user?.email?.split("@")[0]}!
           </h1>
@@ -381,7 +381,7 @@ export default function UserDashboard() {
                 const isLowStock = stock <= 5 && stock > 0;
                 
                 return (
-                  <div key={product.id} className="bg-white p-3 lg:p-4 shadow rounded hover:shadow-lg transition-shadow">
+                  <div key={product.id} className="bg-white p-3 lg:p-4 shadow-lg rounded-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 border border-green-100">
                     <div className="relative">
                       <div
                         className="h-24 sm:h-32 bg-gray-200 mb-3 rounded flex items-center justify-center"
@@ -428,7 +428,7 @@ export default function UserDashboard() {
                     
                     <button
                       onClick={() => handleViewDetails(product)}
-                      className="mt-2 text-xs lg:text-sm text-blue-600 hover:underline font-medium"
+                      className="mt-2 w-full text-xs lg:text-sm bg-gradient-to-r from-blue-600 to-blue-500 text-white py-2 rounded-lg hover:from-blue-700 hover:to-blue-600 transition-all duration-200 font-medium shadow-md hover:shadow-lg"
                     >
                       View Details
                     </button>

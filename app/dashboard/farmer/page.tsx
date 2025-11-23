@@ -810,9 +810,9 @@ export default function FarmerDashboard() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
+    <div className="flex flex-col lg:flex-row h-screen bg-gradient-to-br from-gray-50 via-green-50 to-emerald-50">
       {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-3 sm:p-4 lg:h-screen overflow-y-auto">
+      <aside className="w-full lg:w-64 bg-white/80 backdrop-blur-sm shadow-xl border-r border-green-100 p-3 sm:p-4 lg:h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-8 h-8" />
@@ -908,7 +908,7 @@ export default function FarmerDashboard() {
         </header>
 
         {/* Welcome Section */}
-        <section className="bg-green-100 p-4 lg:p-6 rounded-lg mb-4 lg:mb-6">
+        <section className="bg-gradient-to-r from-green-100 via-emerald-100 to-teal-100 p-4 lg:p-6 rounded-xl shadow-md mb-4 lg:mb-6 border border-green-200">
           <div className="flex items-center space-x-4">
             {user?.profilePhoto ? (
               <img
@@ -935,8 +935,8 @@ export default function FarmerDashboard() {
         </section>
 
         {/* Product Listing Form */}
-        <section className="mb-6 lg:mb-8 bg-white shadow p-4 lg:p-6 rounded">
-          <h2 className="text-base lg:text-lg font-semibold mb-4">Add New Product</h2>
+        <section className="mb-6 lg:mb-8 bg-white/90 backdrop-blur-sm shadow-xl rounded-2xl p-4 lg:p-6 border border-green-100">
+          <h2 className="text-base lg:text-lg font-semibold mb-4 bg-gradient-to-r from-green-700 to-emerald-600 bg-clip-text text-transparent">Add New Product</h2>
           <form onSubmit={handleAddProduct} className="space-y-4">
             {/* Basic Product Information */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1115,7 +1115,7 @@ export default function FarmerDashboard() {
             <button
               type="submit"
               disabled={uploading}
-              className="w-full bg-green-600 text-white py-3 rounded-lg text-sm lg:text-base font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-xl text-sm lg:text-base font-semibold hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02]"
             >
               {uploading ? (
                 <div className="flex flex-col items-center justify-center space-y-1">
@@ -1139,7 +1139,7 @@ export default function FarmerDashboard() {
           <h2 className="text-base lg:text-lg font-semibold mb-3">Your Products</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
             {products.map((item) => (
-              <div key={item.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+              <div key={item.id} className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 overflow-hidden border border-green-100">
                 {/* Product Image */}
                 <div className="h-32 sm:h-40 bg-gray-200 overflow-hidden relative">
                   {item.images && item.images.length > 0 ? (

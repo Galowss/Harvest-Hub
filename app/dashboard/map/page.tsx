@@ -312,9 +312,9 @@ export default function FarmerMapPage() {
   const isFarmer = user?.role === "farmer";
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
+    <div className="flex flex-col lg:flex-row h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-teal-50">
       {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-3 sm:p-4 lg:h-screen overflow-y-auto">
+      <aside className="w-full lg:w-64 bg-white/80 backdrop-blur-sm shadow-xl border-r border-blue-100 p-3 sm:p-4 lg:h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-8 h-8" />
@@ -440,9 +440,9 @@ export default function FarmerMapPage() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-white shadow-sm p-4">
-          <h1 className="text-2xl font-bold mb-2">🗺️ Nearby Farmers Map</h1>
-          <p className="text-gray-600 text-sm">
+        <header className="bg-gradient-to-r from-blue-100 to-teal-100 shadow-lg p-6 rounded-b-2xl border-b-4 border-blue-200">
+          <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-700 to-teal-600 bg-clip-text text-transparent">🗺️ Nearby Farmers Map</h1>
+          <p className="text-gray-700 text-sm">
             Find farmers near you for efficient delivery and reduced costs
           </p>
         </header>
@@ -484,7 +484,7 @@ export default function FarmerMapPage() {
             <div className="flex items-end">
               <button
                 onClick={getUserLocation}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl hover:from-blue-700 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap font-semibold"
               >
                 📍 Update Location
               </button>
@@ -531,10 +531,10 @@ export default function FarmerMapPage() {
                 <div
                   key={farmer.id}
                   onClick={() => setSelectedFarmer(farmer)}
-                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                  className={`p-3 border rounded-xl cursor-pointer transition-all duration-200 ${
                     selectedFarmer?.id === farmer.id
-                      ? "bg-green-50 border-green-500"
-                      : "hover:bg-gray-50"
+                      ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-500 shadow-lg scale-105"
+                      : "hover:bg-gray-50 hover:shadow-md"
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -630,7 +630,7 @@ export default function FarmerMapPage() {
 
                   <a
                     href={`/dashboard/user?farmerId=${farmer.id}`}
-                    className="mt-2 block text-center text-xs bg-green-600 text-white py-1 rounded hover:bg-green-700 transition-colors"
+                    className="mt-2 block text-center text-xs bg-gradient-to-r from-green-600 to-emerald-600 text-white py-2 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium"
                     onClick={(e) => e.stopPropagation()}
                   >
                     View Products

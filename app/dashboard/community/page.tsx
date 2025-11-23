@@ -247,9 +247,9 @@ export default function CommunityHubPage() {
   const isFarmer = user?.role === "farmer";
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-gray-50">
+    <div className="flex flex-col lg:flex-row h-screen bg-gradient-to-br from-gray-50 via-purple-50 to-blue-50">
       {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white shadow-md p-3 sm:p-4 lg:h-screen overflow-y-auto">
+      <aside className="w-full lg:w-64 bg-white/80 backdrop-blur-sm shadow-xl border-r border-purple-100 p-3 sm:p-4 lg:h-screen overflow-y-auto">
         <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
           <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
             <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-8 h-8" />
@@ -368,11 +368,11 @@ export default function CommunityHubPage() {
 
       {/* Main Content */}
       <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-        <header className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold mb-2">
+        <header className="mb-6 bg-gradient-to-r from-purple-100 to-blue-100 p-6 rounded-2xl shadow-lg border border-purple-200">
+          <h1 className="text-2xl lg:text-3xl font-bold mb-2 bg-gradient-to-r from-purple-700 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
             🌾 Community & Knowledge Hub
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-700">
             Share tips, success stories, and learn from fellow farmers
           </p>
         </header>
@@ -400,7 +400,7 @@ export default function CommunityHubPage() {
             </select>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+              className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap font-semibold"
             >
               + New Post
             </button>
@@ -413,7 +413,7 @@ export default function CommunityHubPage() {
             {filteredPosts.map((post) => (
               <div
                 key={post.id}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-4 cursor-pointer"
+                className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 p-4 cursor-pointer border border-gray-100"
                 onClick={() => handleViewPost(post)}
               >
                 <div className="flex items-start justify-between mb-3">
