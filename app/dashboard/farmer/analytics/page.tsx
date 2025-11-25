@@ -301,9 +301,6 @@ export default function FarmerAnalytics() {
           <a href="/dashboard/community" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
             Community Hub
           </a>
-          <a href="/dashboard/map" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
-            Farmer Map
-          </a>
         </nav>
 
         <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block mt-auto pt-4 lg:pt-6 border-t border-gray-200`}>

@@ -344,12 +344,6 @@ export default function PricingDashboardPage() {
           >
             Community Hub
           </a>
-          <a
-            href="/dashboard/map"
-            className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
-          >
-            Farmer Map
-          </a>
         </nav>
 
         <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-200">
