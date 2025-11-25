@@ -558,19 +558,19 @@ export default function FarmerDashboard() {
     }
   };
 
-  // Delete product
+  // Archive product
   const handleDeleteProduct = async (productId: string) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) {
+    if (!window.confirm('Are you sure you want to archive this product?')) {
       return;
     }
 
     try {
       await deleteDoc(doc(db, 'products', productId));
       fetchProducts(user.id);
-      alert('Product deleted successfully!');
+      alert('Product archived successfully!');
     } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Failed to delete product.');
+      console.error('Error archiving product:', error);
+      alert('Failed to archive product.');
     }
   };
 
@@ -1217,9 +1217,9 @@ export default function FarmerDashboard() {
                     </button>
                     <button 
                       onClick={() => handleDeleteProduct(item.id)}
-                      className="flex-1 bg-red-500 text-white text-xs lg:text-sm px-2 py-1 rounded hover:bg-red-600 transition-colors"
+                      className="flex-1 bg-orange-500 text-white text-xs lg:text-sm px-2 py-1 rounded hover:bg-orange-600 transition-colors"
                     >
-                      Delete
+                      Archive
                     </button>
                   </div>
                 </div>
