@@ -8,14 +8,13 @@ service cloud.firestore {
     }
 
     // Helper function to check if email is verified
-    // Note: Allow reads for authenticated users, only enforce verification on writes
     function isEmailVerified() {
       return request.auth != null && request.auth.token.email_verified == true;
     }
     
-    // Helper to check if user is authenticated (for read operations)
+    // Helper to check if user is authenticated AND email verified (required for all operations)
     function isAuthenticated() {
-      return request.auth != null;
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
     // Helper function to validate string length
@@ -30,7 +29,7 @@ service cloud.firestore {
 
     // 👤 USERS COLLECTION
     match /users/{userId} {
-      // Allow authenticated users to read (no email verification required for reads)
+      // Allow only verified users to read
       allow read: if isAuthenticated();
       
       // Users can create their own profile with validation
@@ -53,9 +52,9 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 🌾 PRODUCTS COLLECTION
+    // 🛒 PRODUCTS COLLECTION
     match /products/{productId} {
-      // Allow authenticated users to read products (no verification required for browsing)
+      // Allow only verified users to read products
       allow read: if isAuthenticated();
       
       // Only verified farmers can create products with validation
@@ -89,10 +88,10 @@ service cloud.firestore {
       // Allow admin to read all orders
       allow read: if isAdmin();
 
-      // Allow buyer to read their own orders (no email verification required for reading)
+      // Allow buyer to read their own orders (verified only)
       allow read: if isAuthenticated() && resource.data.buyerId == request.auth.uid;
 
-      // Allow farmer to read orders that belong to them (no email verification required for reading)
+      // Allow farmer to read orders that belong to them (verified only)
       allow read: if isAuthenticated() && resource.data.farmerId == request.auth.uid;
 
       // Only verified users can create orders with validation
