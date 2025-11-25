@@ -16,29 +16,18 @@ import {
 import dynamic from "next/dynamic";
 
 // Dynamically import the map component (client-side only)
-// Note: TypeScript may show an error here due to Next.js 15 Turbopack module resolution
-// This is a known issue and can be safely ignored - the component will load correctly at runtime
-const MapComponent = dynamic<{
-  userLocation: { lat: number; lng: number };
-  farmers: Array<{
-    id: string;
-    name: string;
-    location?: { lat: number; lng: number; address?: string };
-    products: any[];
-    distance?: number;
-  }>;
-  onFarmerClick: (farmer: any) => void;
-  onLocationChange?: (location: { lat: number; lng: number }) => void;
-}>(() => import("./MapComponent"), {
-  ssr: false,
-  loading: () => (
-    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+const MapComponent = dynamic(
+  () => import("./MapComponent").then((mod) => mod.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading map...</p>
         </div>
       </div>
-    )
+    ),
   }
 );
 
