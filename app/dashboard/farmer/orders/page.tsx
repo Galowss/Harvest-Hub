@@ -105,6 +105,46 @@ export default function FarmerOrdersPage() {
     try {
       const orderRef = doc(db, "orders", orderId);
       await updateDoc(orderRef, { status: newStatus });
+      
+      // Send notification to buyer based on status
+      if (newStatus === 'confirmed' || newStatus === 'delivered') {
+        try {
+          const orderDoc = await getDoc(orderRef);
+          if (orderDoc.exists()) {
+            const orderData = orderDoc.data();
+            const buyerDoc = await getDoc(doc(db, "users", orderData.buyerId));
+            const farmerDoc = await getDoc(doc(db, "users", user.uid));
+            
+            if (buyerDoc.exists() && farmerDoc.exists()) {
+              const buyerEmail = buyerDoc.data().email;
+              const buyerName = buyerDoc.data().name || buyerEmail;
+              const farmerName = farmerDoc.data().name || farmerDoc.data().email;
+              
+              const { sendNotification, generateOrderNotificationEmail } = await import('@/lib/notifications');
+              const notifType = newStatus === 'confirmed' ? 'order_confirmed' : 'order_delivered';
+              const { subject, html } = generateOrderNotificationEmail(notifType, {
+                orderId: orderId,
+                productName: orderData.name,
+                quantity: orderData.quantity,
+                totalPrice: orderData.price * orderData.quantity,
+                buyerName: buyerName,
+                farmerName: farmerName,
+                deliveryMethod: orderData.deliveryOption,
+              });
+              
+              await sendNotification({
+                to: buyerEmail,
+                subject,
+                html,
+                type: notifType,
+              });
+            }
+          }
+        } catch (notifError) {
+          console.error('Error sending notification:', notifError);
+        }
+      }
+      
       if (user) fetchOrders(user.uid);
     } catch (err) {
       console.error("Error updating status:", err);
@@ -124,6 +164,44 @@ export default function FarmerOrdersPage() {
         trackingNumber: trackingNumber,
         deliveryStartedAt: new Date(),
       });
+      
+      // Send notification to buyer
+      try {
+        const orderDoc = await getDoc(orderRef);
+        if (orderDoc.exists()) {
+          const orderData = orderDoc.data();
+          const buyerDoc = await getDoc(doc(db, "users", orderData.buyerId));
+          const farmerDoc = await getDoc(doc(db, "users", user.uid));
+          
+          if (buyerDoc.exists() && farmerDoc.exists()) {
+            const buyerEmail = buyerDoc.data().email;
+            const buyerName = buyerDoc.data().name || buyerEmail;
+            const farmerName = farmerDoc.data().name || farmerDoc.data().email;
+            
+            const { sendNotification, generateOrderNotificationEmail } = await import('@/lib/notifications');
+            const { subject, html } = generateOrderNotificationEmail('order_out_for_delivery', {
+              orderId: orderId,
+              productName: orderData.name,
+              quantity: orderData.quantity,
+              totalPrice: orderData.price * orderData.quantity,
+              buyerName: buyerName,
+              farmerName: farmerName,
+              deliveryMethod: orderData.deliveryOption,
+              deliveryAddress: orderData.deliveryAddress,
+            });
+            
+            await sendNotification({
+              to: buyerEmail,
+              subject,
+              html,
+              type: 'order_out_for_delivery',
+            });
+          }
+        }
+      } catch (notifError) {
+        console.error('Error sending notification:', notifError);
+      }
+      
       if (user) fetchOrders(user.uid);
       alert(`Order marked for delivery!\nTracking Number: ${trackingNumber}`);
     } catch (err) {

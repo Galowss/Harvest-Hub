@@ -103,9 +103,15 @@ function OrderSummaryContent() {
     setProcessingOrder(true);
     
     try {
+      // Get buyer name
+      const buyerDoc = await getDoc(doc(db, "users", user.id));
+      const buyerName = buyerDoc.exists() ? buyerDoc.data().name || user.email : user.email;
+      
       for (const item of items) {
         const orderData: any = {
           buyerId: user.id,
+          buyerEmail: user.email,
+          buyerName: buyerName,
           farmerId: item.farmerId || "",
           productId: item.productId,
           name: item.name,
@@ -133,7 +139,41 @@ function OrderSummaryContent() {
           orderData.pickupDateTime = new Date(`${pickupDate}T${pickupTime}`);
           orderData.requiresDelivery = false;
         }
-        await addDoc(collection(db, "orders"), orderData);
+        const orderRef = await addDoc(collection(db, "orders"), orderData);
+        
+        // Send notification to farmer
+        try {
+          const farmerDoc = await getDoc(doc(db, "users", item.farmerId));
+          if (farmerDoc.exists()) {
+            const farmerData = farmerDoc.data();
+            const farmerEmail = farmerData.email;
+            const farmerName = farmerData.name || farmerEmail;
+            
+            // Import notification function
+            const { sendNotification, generateOrderNotificationEmail } = await import('@/lib/notifications');
+            const { subject, html } = generateOrderNotificationEmail('new_order', {
+              orderId: orderRef.id,
+              productName: item.name,
+              quantity: item.quantity,
+              totalPrice: item.price * item.quantity,
+              buyerName: buyerName,
+              farmerName: farmerName,
+              deliveryMethod: deliveryOption,
+              deliveryAddress: deliveryOption === 'delivery' ? deliveryAddress : undefined,
+            });
+            
+            await sendNotification({
+              to: farmerEmail,
+              subject,
+              html,
+              type: 'new_order',
+            });
+          }
+        } catch (notifError) {
+          console.error('Error sending notification:', notifError);
+          // Continue even if notification fails
+        }
+        
         // Remove from cart
         await deleteDoc(doc(db, "cart", item.id));
       }
