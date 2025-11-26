@@ -5,6 +5,7 @@ import { useEffect, useState, Suspense } from "react";
 import { db, auth } from "@/app/config/firebase";
 import { addDoc, collection, doc, getDoc, deleteDoc, updateDoc, increment, Timestamp, serverTimestamp } from "firebase/firestore";
 import dynamic from "next/dynamic";
+import { sendNotification, generateOrderNotificationEmail } from "@/lib/notifications";
 
 // Dynamically import map component to avoid SSR issues
 const LocationPicker = dynamic(
@@ -160,8 +161,7 @@ function OrderSummaryContent() {
             const farmerEmail = farmerData.email;
             const farmerName = farmerData.name || farmerEmail;
             
-            // Import notification function
-            const { sendNotification, generateOrderNotificationEmail } = await import('@/lib/notifications');
+            // Generate notification email
             const { subject, html } = generateOrderNotificationEmail('new_order', {
               orderId: orderRef.id,
               productName: item.name,
