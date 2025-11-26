@@ -107,6 +107,16 @@ function OrderSummaryContent() {
       const buyerName = user.email;
       
       for (const item of items) {
+        // Debug: Check item data
+        console.log('Order item data:', {
+          farmerId: item.farmerId,
+          farmerIdLength: item.farmerId?.length,
+          productId: item.productId,
+          productIdLength: item.productId?.length,
+          name: item.name,
+          nameLength: item.name?.length,
+        });
+        
         const orderData: any = {
           buyerId: user.id,
           buyerEmail: user.email,
@@ -119,7 +129,7 @@ function OrderSummaryContent() {
           photo: item.photo,
           status: "pending",
           createdAt: Timestamp.now(),
-          deliveryMethod: deliveryOption,  // Changed from deliveryOption to deliveryMethod
+          deliveryMethod: deliveryOption,
           paymentMethod: paymentMethod,
           paymentStatus: paymentMethod === 'wallet' ? 'completed' : 'pending',
         };
@@ -138,6 +148,8 @@ function OrderSummaryContent() {
           orderData.pickupDateTime = new Date(`${pickupDate}T${pickupTime}`);
           orderData.requiresDelivery = false;
         }
+        
+        console.log('Creating order with data:', orderData);
         const orderRef = await addDoc(collection(db, "orders"), orderData);
         
         // Send notification to farmer
