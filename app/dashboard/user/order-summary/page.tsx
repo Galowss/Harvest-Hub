@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { db, auth } from "@/app/config/firebase";
-import { addDoc, collection, doc, getDoc, deleteDoc, updateDoc, increment, Timestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, deleteDoc, updateDoc, increment, Timestamp, serverTimestamp } from "firebase/firestore";
 import dynamic from "next/dynamic";
 
 // Dynamically import map component to avoid SSR issues
@@ -114,12 +114,12 @@ function OrderSummaryContent() {
           farmerId: item.farmerId || "",
           productId: item.productId,
           name: item.name,
-          price: item.price,
-          quantity: item.quantity,
+          price: Number(item.price),
+          quantity: Number(item.quantity),
           photo: item.photo,
           status: "pending",
-          createdAt: new Date(),
-          deliveryOption,
+          createdAt: Timestamp.now(),
+          deliveryMethod: deliveryOption,  // Changed from deliveryOption to deliveryMethod
           paymentMethod: paymentMethod,
           paymentStatus: paymentMethod === 'wallet' ? 'completed' : 'pending',
         };
