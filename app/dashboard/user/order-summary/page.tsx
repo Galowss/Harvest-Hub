@@ -103,9 +103,8 @@ function OrderSummaryContent() {
     setProcessingOrder(true);
     
     try {
-      // Get buyer name
-      const buyerDoc = await getDoc(doc(db, "users", user.id));
-      const buyerName = buyerDoc.exists() ? buyerDoc.data().name || user.email : user.email;
+      // Use email as buyer name (simplest and most reliable)
+      const buyerName = user.email;
       
       for (const item of items) {
         const orderData: any = {
