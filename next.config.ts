@@ -26,6 +26,21 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
   // Disable all build optimizations that might cause issues
   productionBrowserSourceMaps: false,
+  // Exclude Node.js modules from client bundles
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        net: false,
+        tls: false,
+        dns: false,
+        fs: false,
+        amqplib: false,
+      };
+    }
+    return config;
+  },
+  serverExternalPackages: ['amqplib'],
 };
 
 export default nextConfig;

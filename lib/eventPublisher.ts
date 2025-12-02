@@ -2,6 +2,12 @@ import { getRabbitMQChannel, QUEUES } from './rabbitmq';
 
 export class EventPublisher {
   static async publish(queue: string, message: any): Promise<boolean> {
+    // Only run on server-side
+    if (typeof window !== 'undefined') {
+      console.warn('EventPublisher can only be used on server-side');
+      return false;
+    }
+    
     try {
       const channel = await getRabbitMQChannel();
       
