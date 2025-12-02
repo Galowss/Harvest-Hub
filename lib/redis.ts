@@ -16,16 +16,25 @@ export async function getRedisClient() {
       
       redisClient = createClient({
         url: redisUrl,
-        socket: {
-          tls: isTLS, // Enable TLS for Upstash
-          rejectUnauthorized: false, // Accept self-signed certificates
+        socket: isTLS ? {
+          tls: true,
+          rejectUnauthorized: false,
           reconnectStrategy: (retries) => {
             if (retries > 10) {
               console.error('Redis: Too many reconnection attempts');
               redisAvailable = false;
               return new Error('Too many retries');
             }
-            return retries * 100; // Exponential backoff
+            return retries * 100;
+          }
+        } : {
+          reconnectStrategy: (retries) => {
+            if (retries > 10) {
+              console.error('Redis: Too many reconnection attempts');
+              redisAvailable = false;
+              return new Error('Too many retries');
+            }
+            return retries * 100;
           }
         }
       });
