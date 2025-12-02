@@ -14,7 +14,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { CacheClient } from "@/lib/cacheClient";
-import { EventPublisher } from "@/lib/eventPublisher";
+import { EventClient } from "@/lib/eventClient";
 // Removed Firebase Storage imports - using Firestore only
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
@@ -544,7 +544,7 @@ export default function FarmerDashboard() {
       console.log('Product added with ID:', docRef.id);
       
       // Publish product created event to Message Bus
-      await EventPublisher.publishProductUpdated({
+      await EventClient.publishProductUpdated({
         productId: docRef.id,
         farmerId: user.id,
         action: 'created',
@@ -602,7 +602,7 @@ export default function FarmerDashboard() {
       await deleteDoc(productRef);
       
       // Publish product deleted event to Message Bus
-      await EventPublisher.publishProductUpdated({
+      await EventClient.publishProductUpdated({
         productId,
         farmerId: user.id,
         action: 'deleted',

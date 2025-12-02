@@ -17,7 +17,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { CacheClient } from "@/lib/cacheClient";
-import { EventPublisher } from "@/lib/eventPublisher";
+import { EventClient } from "@/lib/eventClient";
 
 export default function FarmerOrdersPage() {
   const [user, setUser] = useState<any>(null);
@@ -126,7 +126,7 @@ export default function FarmerOrdersPage() {
       const orderDoc = await getDoc(orderRef);
       if (orderDoc.exists()) {
         const orderData = orderDoc.data();
-        await EventPublisher.publishOrderStatusUpdated({
+        await EventClient.publishOrderStatusUpdated({
           orderId,
           status: newStatus,
           buyerId: orderData.buyerId || "",
@@ -187,7 +187,7 @@ export default function FarmerOrdersPage() {
       const orderDoc = await getDoc(orderRef);
       if (orderDoc.exists()) {
         const orderData = orderDoc.data();
-        await EventPublisher.publishOrderStatusUpdated({
+        await EventClient.publishOrderStatusUpdated({
           orderId,
           status: "cancelled",
           buyerId: orderData.buyerId || "",
@@ -266,7 +266,7 @@ export default function FarmerOrdersPage() {
       ]);
       
       // Publish delivery completed event to Message Bus
-      await EventPublisher.publishOrderStatusUpdated({
+      await EventClient.publishOrderStatusUpdated({
         orderId,
         status: "completed",
         buyerId: orderData.buyerId || "",
