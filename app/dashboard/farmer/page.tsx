@@ -459,7 +459,7 @@ export default function FarmerDashboard() {
     
     if (cached) {
       console.log('✅ Farmer products loaded from cache');
-      setProducts(cached);
+      setProducts(cached as Product[]);
       return;
     }
 
