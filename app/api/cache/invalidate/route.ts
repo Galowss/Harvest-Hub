@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CacheService } from '@/lib/cacheService';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // POST /api/cache/invalidate { pattern }
 export async function POST(request: NextRequest) {
   try {

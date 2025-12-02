@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CacheService } from '@/lib/cacheService';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // GET /api/cache?key=xxx
 export async function GET(request: NextRequest) {
   try {
