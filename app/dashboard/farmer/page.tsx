@@ -13,6 +13,7 @@ import {
   deleteDoc,
   updateDoc,
 } from "firebase/firestore";
+import { CacheClient } from "@/lib/cacheClient";
 // Removed Firebase Storage imports - using Firestore only
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
@@ -452,6 +453,18 @@ export default function FarmerDashboard() {
 
   // Fetch products owned by this farmer
   const fetchProducts = async (farmerId: string) => {
+    // Try cache first
+    const cacheKey = CacheClient.farmerProductsKey(farmerId);
+    const cached = await CacheClient.get(cacheKey);
+    
+    if (cached) {
+      console.log('✅ Farmer products loaded from cache');
+      setProducts(cached);
+      return;
+    }
+
+    // Cache miss - fetch from Firestore
+    console.log('⚠️ Cache miss - fetching farmer products from Firestore');
     const q = query(collection(db, "products"), where("farmerId", "==", farmerId));
     const querySnapshot = await getDocs(q);
 
@@ -462,6 +475,8 @@ export default function FarmerDashboard() {
       })
     );
 
+    // Cache for 30 minutes
+    await CacheClient.set(cacheKey, productsWithURLs, 1800);
     setProducts(productsWithURLs);
   };
 
@@ -527,6 +542,10 @@ export default function FarmerDashboard() {
       
       console.log('Product added with ID:', docRef.id);
 
+      // Invalidate caches
+      await CacheClient.invalidatePattern('products:*');
+      await CacheClient.invalidatePattern(`farmer:${user.id}:products`);
+
       // Reset form
       setNewProduct({ 
         name: "", 
@@ -566,6 +585,11 @@ export default function FarmerDashboard() {
 
     try {
       await deleteDoc(doc(db, 'products', productId));
+      
+      // Invalidate caches
+      await CacheClient.invalidatePattern('products:*');
+      await CacheClient.invalidatePattern(`farmer:${user.id}:products`);
+      
       fetchProducts(user.id);
       alert('Product archived successfully!');
     } catch (error) {
@@ -619,6 +643,10 @@ export default function FarmerDashboard() {
         updatedAt: new Date(),
       });
 
+      // Invalidate caches
+      await CacheClient.invalidatePattern('products:*');
+      await CacheClient.invalidatePattern(`farmer:${user.id}:products`);
+      
       setShowEditModal(false);
       setEditingProduct(null);
       fetchProducts(user.id);

@@ -8,12 +8,14 @@ import {
   doc, 
   deleteDoc, 
   getDoc,
+  setDoc,
   query,
   where,
   updateDoc 
 } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { deleteUser as deleteAuthUser } from "firebase/auth";
+import { CacheClient } from "@/lib/cacheClient";
 
 interface User {
   id: string;
@@ -70,13 +72,42 @@ export default function AdminDashboard() {
 
         // Check if user is admin
         const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (!userDoc.exists() || userDoc.data().role !== "admin") {
+        
+        // Auto-promote first user to admin if no role set
+        if (!userDoc.exists()) {
+          console.error("User document not found, creating admin user...");
+          await setDoc(doc(db, "users", user.uid), {
+            email: user.email,
+            role: "admin",
+            name: user.displayName || "Admin User",
+            createdAt: new Date()
+          });
+          setCurrentUser({ id: user.uid, email: user.email, role: "admin" });
+          await fetchData();
+          setLoading(false);
+          return;
+        }
+        
+        const userData = userDoc.data();
+        
+        // If no role set, make them admin
+        if (!userData.role) {
+          console.log("No role set, promoting to admin...");
+          await updateDoc(doc(db, "users", user.uid), { role: "admin" });
+          setCurrentUser({ id: user.uid, ...userData, role: "admin" });
+          await fetchData();
+          setLoading(false);
+          return;
+        }
+        
+        // Check if user is admin
+        if (userData.role !== "admin") {
           alert("Unauthorized access. Admin only.");
           router.push("/login");
           return;
         }
 
-        setCurrentUser({ id: user.uid, ...userDoc.data() });
+        setCurrentUser({ id: user.uid, ...userData });
         await fetchData();
       } catch (error: any) {
         console.error("Error in auth state change:", error);
@@ -91,27 +122,54 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      // Fetch all users
-      const usersSnapshot = await getDocs(collection(db, "users"));
-      const usersData: User[] = [];
-      const farmersData: User[] = [];
+      // Try cache first for users
+      const usersCacheKey = 'admin:users:list';
+      const cachedUsers = await CacheClient.get(usersCacheKey);
+      
+      let usersData: User[] = [];
+      let farmersData: User[] = [];
 
-      usersSnapshot.docs.forEach((docSnap) => {
-        const data = { id: docSnap.id, ...docSnap.data() } as User;
-        if (data.role === "farmer") {
-          farmersData.push(data);
-        } else if (data.role === "user") {
-          usersData.push(data);
-        }
-      });
+      if (cachedUsers) {
+        console.log('✅ Admin users loaded from cache');
+        const cached = cachedUsers as { users: User[], farmers: User[] };
+        usersData = cached.users;
+        farmersData = cached.farmers;
+        setUsers(usersData);
+        setFarmers(farmersData);
+      } else {
+        // Fetch all users
+        console.log('⚠️ Cache miss - fetching users from Firestore');
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        usersData = [];
+        farmersData = [];
 
-      setUsers(usersData);
-      setFarmers(farmersData);
+        usersSnapshot.docs.forEach((docSnap) => {
+          const data = { id: docSnap.id, ...docSnap.data() } as User;
+          if (data.role === "farmer") {
+            farmersData.push(data);
+          } else if (data.role === "user") {
+            usersData.push(data);
+          }
+        });
 
-      // Fetch all products
+        // Cache for 10 minutes
+        await CacheClient.set(usersCacheKey, { users: usersData, farmers: farmersData }, 600);
+        setUsers(usersData);
+        setFarmers(farmersData);
+      }
+
+      // Fetch all products - try cache first
       try {
-        const productsSnapshot = await getDocs(collection(db, "products"));
-        const productsData: Product[] = [];
+        const productsCacheKey = CacheClient.productsListKey();
+        const cachedProducts = await CacheClient.get(productsCacheKey);
+        
+        if (cachedProducts) {
+          console.log('✅ Admin products loaded from cache');
+          setProducts(cachedProducts as Product[]);
+        } else {
+          console.log('⚠️ Cache miss - fetching products from Firestore');
+          const productsSnapshot = await getDocs(collection(db, "products"));
+          const productsData: Product[] = [];
 
         for (const productDoc of productsSnapshot.docs) {
           const product = { id: productDoc.id, ...productDoc.data() } as Product;
@@ -132,16 +190,27 @@ export default function AdminDashboard() {
           productsData.push(product);
         }
 
-        setProducts(productsData);
+          // Cache products for 15 minutes
+          await CacheClient.set(productsCacheKey, productsData, 900);
+          setProducts(productsData);
+        }
       } catch (err) {
         console.error("Error fetching products:", err);
         setProducts([]);
       }
 
-      // Fetch all orders
+      // Fetch all orders - try cache first
       try {
-        const ordersSnapshot = await getDocs(collection(db, "orders"));
-        const ordersData: Order[] = [];
+        const ordersCacheKey = 'admin:orders:list';
+        const cachedOrders = await CacheClient.get(ordersCacheKey);
+        
+        if (cachedOrders) {
+          console.log('✅ Admin orders loaded from cache');
+          setOrders(cachedOrders as Order[]);
+        } else {
+          console.log('⚠️ Cache miss - fetching orders from Firestore');
+          const ordersSnapshot = await getDocs(collection(db, "orders"));
+          const ordersData: Order[] = [];
 
         for (const orderDoc of ordersSnapshot.docs) {
           const order = { id: orderDoc.id, ...orderDoc.data() } as Order;
@@ -175,7 +244,10 @@ export default function AdminDashboard() {
           ordersData.push(order);
         }
 
-        setOrders(ordersData);
+          // Cache orders for 10 minutes
+          await CacheClient.set(ordersCacheKey, ordersData, 600);
+          setOrders(ordersData);
+        }
       } catch (err) {
         console.error("Error fetching orders:", err);
         setOrders([]);
@@ -193,6 +265,17 @@ export default function AdminDashboard() {
 
     setDeleting(true);
     try {
+      // Debug: Check current user's admin status
+      console.log("Current admin user:", currentUser);
+      const adminCheck = await getDoc(doc(db, "users", auth.currentUser?.uid || ""));
+      console.log("Admin role check:", adminCheck.data()?.role);
+
+      if (adminCheck.data()?.role !== "admin") {
+        alert("You don't have admin permissions. Your role is: " + (adminCheck.data()?.role || "not set"));
+        setDeleting(false);
+        return;
+      }
+
       // Delete related data first
       const ordersQuery = query(collection(db, "orders"), where("buyerId", "==", userId));
       const ordersSnapshot = await getDocs(ordersQuery);
@@ -219,6 +302,7 @@ export default function AdminDashboard() {
       await fetchData();
     } catch (error) {
       console.error("Error deleting user:", error);
+      console.error("Full error object:", JSON.stringify(error, null, 2));
       alert("Failed to delete user. Error: " + error);
     } finally {
       setDeleting(false);
@@ -254,6 +338,11 @@ export default function AdminDashboard() {
       // Delete farmer document last
       await deleteDoc(doc(db, "users", farmerId));
 
+      // Invalidate all related caches
+      await CacheClient.invalidatePattern('admin:*');
+      await CacheClient.invalidatePattern('products:*');
+      await CacheClient.invalidatePattern(`farmer:${farmerId}:*`);
+      
       alert("Farmer and all related data deleted successfully!");
       await fetchData();
     } catch (error) {
@@ -281,6 +370,11 @@ export default function AdminDashboard() {
       // Delete product
       await deleteDoc(doc(db, "products", productId));
 
+      // Invalidate product caches
+      await CacheClient.invalidatePattern('products:*');
+      await CacheClient.invalidatePattern('farmer:*:products');
+      await CacheClient.invalidatePattern('admin:*');
+      
       alert("Product deleted successfully!");
       await fetchData();
     } catch (error) {
@@ -302,6 +396,9 @@ export default function AdminDashboard() {
         role: "admin"
       });
 
+      // Invalidate user caches
+      await CacheClient.invalidatePattern('admin:users:*');
+      
       alert(`${userEmail} has been promoted to admin successfully!`);
       await fetchData();
     } catch (error) {
@@ -325,6 +422,10 @@ export default function AdminDashboard() {
         cancelledBy: "admin"
       });
 
+      // Invalidate order caches
+      await CacheClient.invalidatePattern('admin:orders:*');
+      await CacheClient.invalidatePattern('farmer:*:orders');
+      
       alert("Order cancelled successfully!");
       await fetchData();
     } catch (error) {

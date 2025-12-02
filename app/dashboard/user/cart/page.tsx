@@ -339,7 +339,7 @@ export default function CartPage() {
                       onClick={() => handleRemoveFromCart(item.id)}
                       className="text-xs lg:text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
                     >
-                      Remove
+                      Remove Item
                     </button>
                   </div>
                 </div>

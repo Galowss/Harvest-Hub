@@ -3,9 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { db, auth } from "@/app/config/firebase";
-import { addDoc, collection, doc, getDoc, deleteDoc, updateDoc, increment, Timestamp, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, deleteDoc, updateDoc, increment, Timestamp } from "firebase/firestore";
 import dynamic from "next/dynamic";
-import { sendNotification, generateOrderNotificationEmail } from "@/lib/notifications";
 
 // Dynamically import map component to avoid SSR issues
 const LocationPicker = dynamic(
@@ -104,33 +103,18 @@ function OrderSummaryContent() {
     setProcessingOrder(true);
     
     try {
-      // Use email as buyer name (simplest and most reliable)
-      const buyerName = user.email;
-      
       for (const item of items) {
-        // Debug: Check item data
-        console.log('Order item data:', {
-          farmerId: item.farmerId,
-          farmerIdLength: item.farmerId?.length,
-          productId: item.productId,
-          productIdLength: item.productId?.length,
-          name: item.name,
-          nameLength: item.name?.length,
-        });
-        
         const orderData: any = {
           buyerId: user.id,
-          buyerEmail: user.email,
-          buyerName: buyerName,
           farmerId: item.farmerId || "",
           productId: item.productId,
           name: item.name,
-          price: Number(item.price),
-          quantity: Number(item.quantity),
+          price: item.price,
+          quantity: item.quantity,
           photo: item.photo,
           status: "pending",
-          createdAt: Timestamp.now(),
-          deliveryMethod: deliveryOption,
+          createdAt: new Date(),
+          deliveryOption,
           paymentMethod: paymentMethod,
           paymentStatus: paymentMethod === 'wallet' ? 'completed' : 'pending',
         };
@@ -149,42 +133,7 @@ function OrderSummaryContent() {
           orderData.pickupDateTime = new Date(`${pickupDate}T${pickupTime}`);
           orderData.requiresDelivery = false;
         }
-        
-        console.log('Creating order with data:', orderData);
-        const orderRef = await addDoc(collection(db, "orders"), orderData);
-        
-        // Send notification to farmer
-        try {
-          const farmerDoc = await getDoc(doc(db, "users", item.farmerId));
-          if (farmerDoc.exists()) {
-            const farmerData = farmerDoc.data();
-            const farmerEmail = farmerData.email;
-            const farmerName = farmerData.name || farmerEmail;
-            
-            // Generate notification email
-            const { subject, html } = generateOrderNotificationEmail('new_order', {
-              orderId: orderRef.id,
-              productName: item.name,
-              quantity: item.quantity,
-              totalPrice: item.price * item.quantity,
-              buyerName: buyerName,
-              farmerName: farmerName,
-              deliveryMethod: deliveryOption,
-              deliveryAddress: deliveryOption === 'delivery' ? deliveryAddress : undefined,
-            });
-            
-            await sendNotification({
-              to: farmerEmail,
-              subject,
-              html,
-              type: 'new_order',
-            });
-          }
-        } catch (notifError) {
-          console.error('Error sending notification:', notifError);
-          // Continue even if notification fails
-        }
-        
+        await addDoc(collection(db, "orders"), orderData);
         // Remove from cart
         await deleteDoc(doc(db, "cart", item.id));
       }

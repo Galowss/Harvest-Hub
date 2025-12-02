@@ -12,6 +12,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useLogout } from "@/hooks/useLogout";
 import ProductDetailsDialog from "./ProductDetailsDialog"; // ✅ This dialog shows the farmer rating
+import { CacheClient } from "@/lib/cacheClient";
 
 export default function UserDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -62,11 +63,25 @@ export default function UserDashboard() {
   const fetchProducts = async () => {
     setFetchingProducts(true);
     try {
-      const querySnapshot = await getDocs(collection(db, "products"));
-      const allProductsData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      // Try cache first
+      const cacheKey = CacheClient.productsListKey();
+      const cached = await CacheClient.get(cacheKey);
+      
+      let allProductsData;
+      if (cached) {
+        console.log('✅ Products loaded from cache - saved Firebase read!');
+        allProductsData = cached;
+      } else {
+        console.log('⚠️ Cache miss - fetching from Firestore');
+        const querySnapshot = await getDocs(collection(db, "products"));
+        allProductsData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        
+        // Store in cache for 1 hour
+        await CacheClient.set(cacheKey, allProductsData, 3600);
+      }
       
       // Filter only products with stock > 0 (available produce)
       const availableProducts = allProductsData.filter((product: any) => {

@@ -16,6 +16,7 @@ import {
   increment,
   Timestamp,
 } from "firebase/firestore";
+import { CacheClient } from "@/lib/cacheClient";
 
 export default function FarmerOrdersPage() {
   const [user, setUser] = useState<any>(null);
@@ -43,6 +44,18 @@ export default function FarmerOrdersPage() {
   // fetch all orders for this farmer
   const fetchOrders = async (farmerId: string) => {
     try {
+      // Try cache first
+      const cacheKey = CacheClient.farmerOrdersKey(farmerId);
+      const cached = await CacheClient.get(cacheKey);
+      
+      if (cached) {
+        console.log('✅ Farmer orders loaded from cache');
+        setOrders(cached);
+        return;
+      }
+
+      // Cache miss - fetch from Firestore
+      console.log('⚠️ Cache miss - fetching farmer orders from Firestore');
       const q = query(collection(db, "orders"), where("farmerId", "==", farmerId));
       const querySnapshot = await getDocs(q);
 
@@ -94,6 +107,8 @@ export default function FarmerOrdersPage() {
         })
       );
 
+      // Cache for 15 minutes
+      await CacheClient.set(cacheKey, fetchedOrders, 900);
       setOrders(fetchedOrders);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -106,43 +121,10 @@ export default function FarmerOrdersPage() {
       const orderRef = doc(db, "orders", orderId);
       await updateDoc(orderRef, { status: newStatus });
       
-      // Send notification to buyer based on status
-      if (newStatus === 'confirmed' || newStatus === 'delivered') {
-        try {
-          const orderDoc = await getDoc(orderRef);
-          if (orderDoc.exists()) {
-            const orderData = orderDoc.data();
-            const buyerDoc = await getDoc(doc(db, "users", orderData.buyerId));
-            const farmerDoc = await getDoc(doc(db, "users", user.uid));
-            
-            if (buyerDoc.exists() && farmerDoc.exists()) {
-              const buyerEmail = buyerDoc.data().email;
-              const buyerName = buyerDoc.data().name || buyerEmail;
-              const farmerName = farmerDoc.data().name || farmerDoc.data().email;
-              
-              const { sendNotification, generateOrderNotificationEmail } = await import('@/lib/notifications');
-              const notifType = newStatus === 'confirmed' ? 'order_confirmed' : 'order_delivered';
-              const { subject, html } = generateOrderNotificationEmail(notifType, {
-                orderId: orderId,
-                productName: orderData.name,
-                quantity: orderData.quantity,
-                totalPrice: orderData.price * orderData.quantity,
-                buyerName: buyerName,
-                farmerName: farmerName,
-                deliveryMethod: orderData.deliveryOption,
-              });
-              
-              await sendNotification({
-                to: buyerEmail,
-                subject,
-                html,
-                type: notifType,
-              });
-            }
-          }
-        } catch (notifError) {
-          console.error('Error sending notification:', notifError);
-        }
+      // Invalidate order caches
+      if (user) {
+        await CacheClient.invalidatePattern(`farmer:${user.uid}:orders`);
+        await CacheClient.invalidatePattern('admin:orders:*');
       }
       
       if (user) fetchOrders(user.uid);
@@ -165,41 +147,10 @@ export default function FarmerOrdersPage() {
         deliveryStartedAt: new Date(),
       });
       
-      // Send notification to buyer
-      try {
-        const orderDoc = await getDoc(orderRef);
-        if (orderDoc.exists()) {
-          const orderData = orderDoc.data();
-          const buyerDoc = await getDoc(doc(db, "users", orderData.buyerId));
-          const farmerDoc = await getDoc(doc(db, "users", user.uid));
-          
-          if (buyerDoc.exists() && farmerDoc.exists()) {
-            const buyerEmail = buyerDoc.data().email;
-            const buyerName = buyerDoc.data().name || buyerEmail;
-            const farmerName = farmerDoc.data().name || farmerDoc.data().email;
-            
-            const { sendNotification, generateOrderNotificationEmail } = await import('@/lib/notifications');
-            const { subject, html } = generateOrderNotificationEmail('order_out_for_delivery', {
-              orderId: orderId,
-              productName: orderData.name,
-              quantity: orderData.quantity,
-              totalPrice: orderData.price * orderData.quantity,
-              buyerName: buyerName,
-              farmerName: farmerName,
-              deliveryMethod: orderData.deliveryOption,
-              deliveryAddress: orderData.deliveryAddress,
-            });
-            
-            await sendNotification({
-              to: buyerEmail,
-              subject,
-              html,
-              type: 'order_out_for_delivery',
-            });
-          }
-        }
-      } catch (notifError) {
-        console.error('Error sending notification:', notifError);
+      // Invalidate order caches
+      if (user) {
+        await CacheClient.invalidatePattern(`farmer:${user.uid}:orders`);
+        await CacheClient.invalidatePattern('admin:orders:*');
       }
       
       if (user) fetchOrders(user.uid);

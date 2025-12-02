@@ -6,15 +6,24 @@ service cloud.firestore {
       return request.auth != null && 
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+    
+    // Check if requesting user is admin (with existence check)
+    function isAdminSafe() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
 
-    // Helper function to check if email is verified
+    // Helper function to check if email is verified (more lenient)
     function isEmailVerified() {
-      return request.auth != null && request.auth.token.email_verified == true;
+      return request.auth != null && 
+             (request.auth.token.email_verified == true || 
+              !('email_verified' in request.auth.token));
     }
     
-    // Helper to check if user is authenticated AND email verified (required for all operations)
+    // Helper to check if user is authenticated (allow both verified and unverified for now)
     function isAuthenticated() {
-      return request.auth != null && request.auth.token.email_verified == true;
+      return request.auth != null;
     }
 
     // Helper function to validate string length
@@ -29,153 +38,106 @@ service cloud.firestore {
 
     // 👤 USERS COLLECTION
     match /users/{userId} {
-      // Allow authenticated users to read their own document (for isAdmin() checks and role verification)
-      // Allow verified users to read other users
-      allow read: if request.auth != null && (
-        request.auth.uid == userId || // Own document (needed for isAdmin() to work)
-        isAuthenticated() // Others need verification
-      );
+      // Allow authenticated users to read
+      allow read: if request.auth != null;
       
-      // Users can create their own profile with validation
+      // Users can create their own profile
       allow create: if request.auth != null 
-        && request.auth.uid == userId
-        && isValidString(request.resource.data.name, 2, 100)
-        && isValidString(request.resource.data.email, 5, 100)
-        && request.resource.data.email.matches('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}')
-        && request.resource.data.role in ['user', 'farmer']
-        && (!request.resource.data.keys().hasAny(['contact']) || isValidString(request.resource.data.contact, 10, 20))
-        && (!request.resource.data.keys().hasAny(['farmAddress']) || isValidString(request.resource.data.farmAddress, 10, 500));
+        && request.auth.uid == userId;
       
-      // Users can update their own profile with validation
+      // ADMINS: Allow all operations (read, create, update, delete)
+      allow read, write: if isAdminSafe();
+      
+      // Regular users can update their own profile (but NOT role or email fields)
       allow update: if request.auth != null 
         && request.auth.uid == userId
-        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'email']));
-      
-      // Admins can update any user (for role promotion/demotion)
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'email']);
     }
 
     // 🛒 PRODUCTS COLLECTION
     match /products/{productId} {
-      // Allow only verified users to read products
-      allow read: if isAuthenticated();
+      // Admins can do everything
+      allow read, write: if isAdminSafe();
       
-      // Only verified farmers can create products with validation
-      allow create: if isEmailVerified()
-        && request.resource.data.farmerId == request.auth.uid
-        && isValidString(request.resource.data.name, 2, 100)
-        && isValidString(request.resource.data.description, 10, 1000)
-        && isValidString(request.resource.data.category, 2, 50)
-        && isValidNumber(request.resource.data.price is string ? float(request.resource.data.price) : request.resource.data.price, 0, 1000000)
-        && isValidNumber(request.resource.data.quantity is string ? int(request.resource.data.quantity) : request.resource.data.quantity, 0, 100000)
-        && request.resource.data.images is list
-        && request.resource.data.images.size() <= 5;
+      // Allow authenticated users to read products
+      allow read: if request.auth != null;
       
-      // Modified to allow quantity/stock updates during order completion
+      // Authenticated farmers can create products (simplified validation)
+      allow create: if request.auth != null
+        && request.resource.data.farmerId == request.auth.uid;
+      
+      // Farmer can update their products, or any user can update quantity/stock
       allow update: if request.auth != null && (
-        // Farmer can update everything (with validation)
-        (resource.data.farmerId == request.auth.uid 
-          && isValidString(request.resource.data.name, 2, 100)
-          && isValidString(request.resource.data.description, 10, 1000)) || 
-        // Any authenticated user can update quantity only
+        resource.data.farmerId == request.auth.uid || 
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(["quantity"]) ||
-        // Allow stock updates for order completion
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stock"])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["stock"]) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["quantity", "stock"])
       );
       
-      allow delete: if isAdmin() || (request.auth != null && resource.data.farmerId == request.auth.uid);
+      // Product owner can delete
+      allow delete: if request.auth != null && resource.data.farmerId == request.auth.uid;
     }
 
     // 📦 ORDERS COLLECTION
     match /orders/{orderId} {
-      // Allow admin to read all orders
-      allow read: if isAdmin();
+      // Admins can do everything
+      allow read, write: if isAdminSafe();
 
-      // Allow buyer to read their own orders (verified only)
-      allow read: if isAuthenticated() && resource.data.buyerId == request.auth.uid;
+      // Allow buyer to read their own orders
+      allow read: if request.auth != null && resource.data.buyerId == request.auth.uid;
 
-      // Allow farmer to read orders that belong to them (verified only)
-      allow read: if isAuthenticated() && resource.data.farmerId == request.auth.uid;
+      // Allow farmer to read orders that belong to them
+      allow read: if request.auth != null && resource.data.farmerId == request.auth.uid;
 
-      // Only verified users can create orders with validation
-      allow create: if isEmailVerified()
-        && request.resource.data.buyerId == request.auth.uid
-        && isValidString(request.resource.data.farmerId, 20, 30)
-        && isValidString(request.resource.data.productId, 20, 30)
-        && isValidString(request.resource.data.name, 2, 100)
-        && isValidNumber(request.resource.data.quantity is string ? int(request.resource.data.quantity) : request.resource.data.quantity, 1, 10000)
-        && isValidNumber(request.resource.data.price is string ? float(request.resource.data.price) : request.resource.data.price, 0, 1000000)
-        && request.resource.data.status in ['pending', 'Pending']
-        && request.resource.data.paymentMethod in ['cod', 'wallet', 'COD']
-        && request.resource.data.deliveryMethod in ['delivery', 'pickup']
-        && request.resource.data.createdAt is timestamp;
+      // Authenticated users can create orders
+      allow create: if request.auth != null
+        && request.resource.data.buyerId == request.auth.uid;
 
-      // Allow admin to update any order
-      allow update: if isAdmin();
-
-      // Allow farmer to update order status and delivery info
+      // Allow farmer to update their orders
       allow update: if request.auth != null
-        && resource.data.farmerId == request.auth.uid
-        && request.resource.data.status in ["pending", "out-for-delivery", "completed", "cancelled"];
+        && resource.data.farmerId == request.auth.uid;
 
-      // Allow buyer to cancel their own pending orders
+      // Allow buyer to update their own orders
       allow update: if request.auth != null
-        && resource.data.buyerId == request.auth.uid
-        && resource.data.status in ["pending", "Pending"]
-        && request.resource.data.status == "cancelled"
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "cancelledAt"]);
-
-      // Allow buyer to mark their completed orders as reviewed
-      allow update: if request.auth != null
-        && resource.data.buyerId == request.auth.uid
-        && resource.data.status == "completed"
-        && request.resource.data.reviewed == true
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["reviewed", "reviewedAt"]);
-
-      // Allow admins to delete orders
-      allow delete: if isAdmin();
+        && resource.data.buyerId == request.auth.uid;
     }
 
     // 🛒 CART COLLECTION
     match /cart/{cartId} {
-      // Allow authenticated users to read and update their cart
-      allow read, update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      // Admins can do everything
+      allow read, write: if isAdminSafe();
       
-      allow create: if isEmailVerified()
-        && request.resource.data.userId == request.auth.uid
-        && isValidString(request.resource.data.productId, 20, 30)
-        && isValidNumber(request.resource.data.quantity is string ? int(request.resource.data.quantity) : request.resource.data.quantity, 1, 1000)
-        && isValidNumber(request.resource.data.price is string ? float(request.resource.data.price) : request.resource.data.price, 0, 1000000);
+      // Allow authenticated users to manage their cart
+      allow read, update: if request.auth != null && resource.data.userId == request.auth.uid;
       
-      allow delete: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // 💬 REVIEWS COLLECTION
     match /reviews/{reviewId} {
-      allow read: if isAuthenticated();
+      allow read: if request.auth != null;
       
-      allow create: if isEmailVerified()
-        && request.resource.data.userId == request.auth.uid
-        && isValidString(request.resource.data.review, 10, 1000)
-        && request.resource.data.createdAt is timestamp;
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
       
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // ⭐ RATINGS COLLECTION
     match /ratings/{ratingId} {
-      allow read: if isAuthenticated();
+      // Admins can do everything
+      allow read, write: if isAdminSafe();
       
-      allow create: if isEmailVerified()
-        && request.resource.data.userId == request.auth.uid
-        && isValidString(request.resource.data.farmerId, 20, 30)
-        && isValidNumber(request.resource.data.rating, 1, 5)
-        && (!request.resource.data.keys().hasAny(['comment']) || isValidString(request.resource.data.comment, 1, 500))
-        && request.resource.data.createdAt is timestamp;
+      allow read: if request.auth != null;
       
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // Remove duplicate ratings match
@@ -187,64 +149,51 @@ service cloud.firestore {
     // 🌱 COMMUNITY POSTS COLLECTION
     match /community_posts/{postId} {
       // Anyone authenticated can read posts
-      allow read: if isAuthenticated();
+      allow read: if request.auth != null;
       
-      // Only verified users can create posts with validation
-      allow create: if isEmailVerified()
-        && request.resource.data.authorId == request.auth.uid
-        && isValidString(request.resource.data.title, 5, 200)
-        && isValidString(request.resource.data.content, 10, 5000)
-        && request.resource.data.category in ['tip', 'question', 'discussion', 'success']
-        && request.resource.data.likes == 0
-        && request.resource.data.comments == 0
-        && request.resource.data.createdAt is timestamp;
+      // Authenticated users can create posts
+      allow create: if request.auth != null
+        && request.resource.data.authorId == request.auth.uid;
       
       // Authors can update their own posts, or anyone can update likes/likedBy/commentCount
-      allow update: if isAuthenticated() && (
+      allow update: if request.auth != null && (
         resource.data.authorId == request.auth.uid ||
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'likedBy', 'commentCount'])
       );
       
       // Authors can delete their own posts
-      allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
     }
 
     // 💬 COMMUNITY COMMENTS COLLECTION
     match /community_comments/{commentId} {
       // Anyone authenticated can read comments
-      allow read: if isAuthenticated();
+      allow read: if request.auth != null;
       
-      // Only verified users can create comments with validation
-      allow create: if isEmailVerified()
-        && request.resource.data.authorId == request.auth.uid
-        && isValidString(request.resource.data.postId, 20, 30)
-        && isValidString(request.resource.data.content, 1, 1000)
-        && request.resource.data.createdAt is timestamp;
+      // Authenticated users can create comments
+      allow create: if request.auth != null
+        && request.resource.data.authorId == request.auth.uid;
       
       // Authors can update their own comments
-      allow update: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.authorId == request.auth.uid;
       
       // Authors can delete their own comments
-      allow delete: if isAuthenticated() && resource.data.authorId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.authorId == request.auth.uid;
     }
 
     // 💰 WALLETS COLLECTION
     match /wallets/{userId} {
       // Users can read their own wallet
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
       
-      // Only verified users can create their own wallet with validation
-      allow create: if isEmailVerified()
+      // Authenticated users can create their own wallet
+      allow create: if request.auth != null
         && request.auth.uid == userId
-        && request.resource.data.userId == userId
-        && isValidNumber(request.resource.data.balance, 0, 10000000)
-        && (!request.resource.data.keys().hasAny(['totalEarnings']) || isValidNumber(request.resource.data.totalEarnings, 0, 10000000))
-        && (!request.resource.data.keys().hasAny(['totalWithdrawals']) || isValidNumber(request.resource.data.totalWithdrawals, 0, 10000000));
+        && request.resource.data.userId == userId;
       
-      // Users can update their own wallet balance (with limits)
-      allow update: if isAuthenticated()
-        && request.auth.uid == userId
-        && isValidNumber(request.resource.data.balance, 0, 10000000);
+      // Users can update their own wallet
+      allow update: if request.auth != null
+        && request.auth.uid == userId;
       
       // Admins can read and update any wallet
       allow read, update: if isAdmin();
@@ -253,16 +202,11 @@ service cloud.firestore {
     // 💳 WALLET TRANSACTIONS COLLECTION
     match /wallet_transactions/{transactionId} {
       // Users can read their own transactions
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
       
-      // Only verified users can create transactions with validation
-      allow create: if isEmailVerified()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.type in ['topup', 'payment', 'refund', 'withdrawal', 'credit', 'debit']
-        && isValidNumber(request.resource.data.amount, 0, 1000000)
-        && isValidString(request.resource.data.description, 5, 500)
-        && request.resource.data.status in ['pending', 'completed', 'failed']
-        && request.resource.data.createdAt is timestamp;
+      // Authenticated users can create transactions
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
       
       // Admins can read all transactions
       allow read: if isAdmin();

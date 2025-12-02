@@ -1,20 +1,107 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker Compose reference guide at
-# https://docs.docker.com/go/compose-spec-reference/
+# Event-Driven Architecture with Redis, Nginx, and RabbitMQ
+# Full stack deployment for Harvest Hub
 
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
 services:
-  server:
+  # Nginx - Reverse Proxy & Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: harvest-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - nextjs
+    restart: unless-stopped
+    networks:
+      - harvest-network
+
+  # Next.js Application
+  nextjs:
     build:
       context: .
+      dockerfile: Dockerfile
+    container_name: harvest-nextjs
     environment:
       NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    expose:
+      - 3000
+    depends_on:
+      - redis
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - harvest-network
+
+  # Redis - Caching & Session Management
+  redis:
+    image: redis:7-alpine
+    container_name: harvest-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    expose:
+      - 6379
+    restart: unless-stopped
+    networks:
+      - harvest-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # RabbitMQ - Message Queue
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: harvest-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: harvest
+      RABBITMQ_DEFAULT_PASS: harvest123
     ports:
-      - 3000:3000
+      - "15672:15672"  # Management UI
+    expose:
+      - 5672
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    restart: unless-stopped
+    networks:
+      - harvest-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Worker - Background Job Processor
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: harvest-worker
+    command: npx tsx workers/orderProcessor.ts
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      - redis
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - harvest-network
+
+networks:
+  harvest-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  rabbitmq-data:
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
