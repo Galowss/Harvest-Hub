@@ -45,21 +45,25 @@ export class EventPublisher {
     });
   }
 
-  static async publishOrderStatusUpdated(orderId: string, newStatus: string, userId: string) {
+  static async publishOrderStatusUpdated(data: { orderId: string; status: string; buyerId: string; farmerId: string }) {
     return this.publish(QUEUES.ORDER_STATUS_UPDATED, {
       type: 'ORDER_STATUS_UPDATED',
-      orderId,
-      newStatus,
-      userId,
+      orderId: data.orderId,
+      newStatus: data.status,
+      userId: data.buyerId,
+      farmerId: data.farmerId,
       timestamp: new Date().toISOString()
     });
   }
 
-  static async publishProductUpdated(productId: string, farmerId: string) {
+  static async publishProductUpdated(data: { productId: string; farmerId: string; action: string; productName: string; stock: number }) {
     return this.publish(QUEUES.PRODUCT_UPDATED, {
       type: 'PRODUCT_UPDATED',
-      productId,
-      farmerId,
+      productId: data.productId,
+      farmerId: data.farmerId,
+      action: data.action,
+      productName: data.productName,
+      stock: data.stock,
       timestamp: new Date().toISOString()
     });
   }

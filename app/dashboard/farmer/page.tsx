@@ -14,6 +14,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { CacheClient } from "@/lib/cacheClient";
+import { EventPublisher } from "@/lib/eventPublisher";
 // Removed Firebase Storage imports - using Firestore only
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { useRouter } from "next/navigation";
@@ -541,6 +542,15 @@ export default function FarmerDashboard() {
       });
       
       console.log('Product added with ID:', docRef.id);
+      
+      // Publish product created event to Message Bus
+      await EventPublisher.publishProductUpdated({
+        productId: docRef.id,
+        farmerId: user.id,
+        action: 'created',
+        productName: newProduct.name,
+        stock: parseInt(newProduct.quantity),
+      });
 
       // Invalidate caches
       await CacheClient.invalidatePattern('products:*');
@@ -584,7 +594,21 @@ export default function FarmerDashboard() {
     }
 
     try {
-      await deleteDoc(doc(db, 'products', productId));
+      // Get product details before deletion
+      const productRef = doc(db, 'products', productId);
+      const productSnap = await getDoc(productRef);
+      const productName = productSnap.exists() ? productSnap.data().name : 'Unknown';
+      
+      await deleteDoc(productRef);
+      
+      // Publish product deleted event to Message Bus
+      await EventPublisher.publishProductUpdated({
+        productId,
+        farmerId: user.id,
+        action: 'deleted',
+        productName,
+        stock: 0,
+      });
       
       // Invalidate caches
       await CacheClient.invalidatePattern('products:*');
@@ -641,6 +665,15 @@ export default function FarmerDashboard() {
         harvestDate: editingProduct.harvestDate,
         images: allImages, // Store base64 images
         updatedAt: new Date(),
+      });
+      
+      // Publish product updated event to Message Bus
+      await EventPublisher.publishProductUpdated({
+        productId: editingProduct.id,
+        farmerId: user.id,
+        action: 'updated',
+        productName: editingProduct.name,
+        stock: parseInt(editingProduct.quantity),
       });
 
       // Invalidate caches

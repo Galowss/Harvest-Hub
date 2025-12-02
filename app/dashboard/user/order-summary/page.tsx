@@ -5,6 +5,7 @@ import { useEffect, useState, Suspense } from "react";
 import { db, auth } from "@/app/config/firebase";
 import { addDoc, collection, doc, getDoc, deleteDoc, updateDoc, increment, Timestamp } from "firebase/firestore";
 import dynamic from "next/dynamic";
+import { EventPublisher } from "@/lib/eventPublisher";
 
 // Dynamically import map component to avoid SSR issues
 const LocationPicker = dynamic(
@@ -133,7 +134,20 @@ function OrderSummaryContent() {
           orderData.pickupDateTime = new Date(`${pickupDate}T${pickupTime}`);
           orderData.requiresDelivery = false;
         }
-        await addDoc(collection(db, "orders"), orderData);
+        const orderDoc = await addDoc(collection(db, "orders"), orderData);
+        
+        // Publish order created event to Message Bus
+        await EventPublisher.publishOrderCreated({
+          orderId: orderDoc.id,
+          buyerId: user.id,
+          farmerId: item.farmerId || "",
+          productId: item.productId,
+          quantity: item.quantity,
+          totalPrice: item.price * item.quantity,
+          paymentMethod,
+          deliveryOption,
+        });
+        
         // Remove from cart
         await deleteDoc(doc(db, "cart", item.id));
       }
@@ -154,6 +168,14 @@ function OrderSummaryContent() {
           description: `Payment for ${items.length} item(s)`,
           status: 'completed',
           createdAt: new Date()
+        });
+        
+        // Publish payment event to Message Bus
+        await EventPublisher.publishNotification(user.id, {
+          type: 'payment_success',
+          title: 'Payment Successful',
+          message: `Payment of ₱${totalAmount.toFixed(2)} completed via wallet`,
+          data: { amount: totalAmount, method: 'wallet' }
         });
       }
       

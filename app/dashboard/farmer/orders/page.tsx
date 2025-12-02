@@ -17,6 +17,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { CacheClient } from "@/lib/cacheClient";
+import { EventPublisher } from "@/lib/eventPublisher";
 
 export default function FarmerOrdersPage() {
   const [user, setUser] = useState<any>(null);
@@ -121,6 +122,18 @@ export default function FarmerOrdersPage() {
       const orderRef = doc(db, "orders", orderId);
       await updateDoc(orderRef, { status: newStatus });
       
+      // Publish order status updated event to Message Bus
+      const orderDoc = await getDoc(orderRef);
+      if (orderDoc.exists()) {
+        const orderData = orderDoc.data();
+        await EventPublisher.publishOrderStatusUpdated({
+          orderId,
+          status: newStatus,
+          buyerId: orderData.buyerId || "",
+          farmerId: orderData.farmerId || user?.uid || "",
+        });
+      }
+      
       // Invalidate order caches
       if (user) {
         await CacheClient.invalidatePattern(`farmer:${user.uid}:orders`);
@@ -169,6 +182,19 @@ export default function FarmerOrdersPage() {
     try {
       const orderRef = doc(db, "orders", orderId);
       await updateDoc(orderRef, { status: "cancelled" });
+      
+      // Publish order cancellation event to Message Bus
+      const orderDoc = await getDoc(orderRef);
+      if (orderDoc.exists()) {
+        const orderData = orderDoc.data();
+        await EventPublisher.publishOrderStatusUpdated({
+          orderId,
+          status: "cancelled",
+          buyerId: orderData.buyerId || "",
+          farmerId: orderData.farmerId || user?.uid || "",
+        });
+      }
+      
       if (user) fetchOrders(user.uid);
       alert("Order has been cancelled successfully.");
     } catch (err) {
@@ -238,6 +264,14 @@ export default function FarmerOrdersPage() {
         }),
         updateDoc(productRef, { stock: newStock })
       ]);
+      
+      // Publish delivery completed event to Message Bus
+      await EventPublisher.publishOrderStatusUpdated({
+        orderId,
+        status: "completed",
+        buyerId: orderData.buyerId || "",
+        farmerId: orderData.farmerId || user?.uid || "",
+      });
       
       // 💰 AUTO-PAYOUT: Credit farmer wallet if order was paid with wallet
       if (orderData.paymentMethod === 'wallet' && orderData.paymentStatus === 'paid') {
