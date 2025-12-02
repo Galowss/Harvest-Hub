@@ -50,7 +50,7 @@ export default function FarmerOrdersPage() {
       
       if (cached) {
         console.log('✅ Farmer orders loaded from cache');
-        setOrders(cached);
+        setOrders(cached as any[]);
         return;
       }
 
