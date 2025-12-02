@@ -1,12 +1,25 @@
-import amqplib from 'amqplib';
+let amqplib: any = null;
 
-type Connection = Awaited<ReturnType<typeof amqplib.connect>>;
-type Channel = Awaited<ReturnType<Connection['createChannel']>>;
+// Lazy load amqplib only on server-side
+if (typeof window === 'undefined') {
+  try {
+    amqplib = require('amqplib');
+  } catch (e) {
+    console.warn('amqplib not available');
+  }
+}
+
+type Connection = any;
+type Channel = any;
 
 let connection: Connection | null = null;
 let channel: Channel | null = null;
 
 export async function getRabbitMQChannel(): Promise<Channel> {
+  if (!amqplib) {
+    throw new Error('RabbitMQ is only available on server-side');
+  }
+  
   if (!connection) {
     const rabbitmqUrl = process.env.RABBITMQ_URL || 'amqp://localhost:5672';
     connection = await amqplib.connect(rabbitmqUrl);
