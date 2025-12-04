@@ -75,7 +75,7 @@ export async function fetchISR<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`ISR fetch failed: ${response.statusUrl}`);
+    throw new Error(`ISR fetch failed: ${response.statusText}`);
   }
 
   return response.json();
