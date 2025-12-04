@@ -40,16 +40,11 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
     noFollow ? 'nofollow' : 'follow',
   ].join(', ');
 
-  return {
+  const metadata: Metadata = {
     title,
     description,
-    keywords: keywords.join(', '),
+    keywords: keywords.length > 0 ? keywords : undefined,
     robots: robotsValue,
-    
-    // Canonical URL
-    alternates: canonical ? {
-      canonical,
-    } : undefined,
     
     // Open Graph
     openGraph: {
@@ -73,6 +68,15 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
       images: [ogImage],
     },
   };
+
+  // Add canonical URL if provided
+  if (canonical) {
+    metadata.alternates = {
+      canonical,
+    };
+  }
+
+  return metadata;
 }
 
 /**
