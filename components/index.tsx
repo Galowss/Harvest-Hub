@@ -15,4 +15,4 @@ export * from './templates';
 
 // Legacy components (to be migrated)
 export { default as ClientOnly } from './ClientOnly';
-export { ProductImage } from './ProductImage';
+export { default as ProductImage } from './ProductImage';
