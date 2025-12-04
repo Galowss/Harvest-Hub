@@ -199,23 +199,23 @@ export function useFarmersWithLocation(): UseQueryResult<UserData[]> {
       );
       
       const snapshot = await getDocs(q);
-      const farmers = snapshot.docs
-        .map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            email: data.email || '',
-            name: data.name || '',
-            role: data.role || 'farmer',
-            phoneNumber: data.phoneNumber,
-            address: data.address,
-            location: data.location,
-            farmName: data.farmName,
-            createdAt: data.createdAt?.toDate(),
-            updatedAt: data.updatedAt?.toDate(),
-          } as UserData;
-        })
-        .filter((farmer: UserData) => farmer.location); // Only include farmers with location
+      const allFarmers: UserData[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          email: data.email || '',
+          name: data.name || '',
+          role: data.role || 'farmer',
+          phoneNumber: data.phoneNumber,
+          address: data.address,
+          location: data.location,
+          farmName: data.farmName,
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
+        } as UserData;
+      });
+      
+      const farmers = allFarmers.filter((farmer) => farmer.location); // Only include farmers with location
 
       setData(farmers);
     } catch (err) {
