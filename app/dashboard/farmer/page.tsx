@@ -668,7 +668,7 @@ export default function FarmerDashboard() {
       });
       
       // Publish product updated event to Message Bus
-      await EventPublisher.publishProductUpdated({
+      await EventClient.publishProductUpdated({
         productId: editingProduct.id,
         farmerId: user.id,
         action: 'updated',
