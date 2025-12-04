@@ -26,12 +26,21 @@ export function useUsers(): UseQueryResult<UserData[]> {
 
     try {
       const snapshot = await getDocs(collection(db, COLLECTIONS.USERS));
-      const users = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      })) as UserData[];
+      const users = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          email: data.email || '',
+          name: data.name || '',
+          role: data.role || 'user',
+          phoneNumber: data.phoneNumber,
+          address: data.address,
+          location: data.location,
+          farmName: data.farmName,
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
+        } as UserData;
+      });
 
       setData(users);
     } catch (err) {
@@ -77,11 +86,18 @@ export function useUser(userId: string): UseQueryResult<UserData> {
       const docSnap = await getDoc(docRef);
 
       if (docSnap.exists()) {
+        const data = docSnap.data();
         const user = {
           id: docSnap.id,
-          ...docSnap.data(),
-          createdAt: docSnap.data().createdAt?.toDate(),
-          updatedAt: docSnap.data().updatedAt?.toDate(),
+          email: data.email || '',
+          name: data.name || '',
+          role: data.role || 'user',
+          phoneNumber: data.phoneNumber,
+          address: data.address,
+          location: data.location,
+          farmName: data.farmName,
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
         } as UserData;
         setData(user);
       } else {
@@ -127,12 +143,21 @@ export function useFarmers(): UseQueryResult<UserData[]> {
       );
       
       const snapshot = await getDocs(q);
-      const farmers = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      })) as UserData[];
+      const farmers = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          email: data.email || '',
+          name: data.name || '',
+          role: data.role || 'farmer',
+          phoneNumber: data.phoneNumber,
+          address: data.address,
+          location: data.location,
+          farmName: data.farmName,
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
+        } as UserData;
+      });
 
       setData(farmers);
     } catch (err) {
@@ -175,13 +200,22 @@ export function useFarmersWithLocation(): UseQueryResult<UserData[]> {
       
       const snapshot = await getDocs(q);
       const farmers = snapshot.docs
-        .map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate(),
-          updatedAt: doc.data().updatedAt?.toDate(),
-        }))
-        .filter((farmer: UserData) => farmer.location) as UserData[]; // Only include farmers with location
+        .map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            email: data.email || '',
+            name: data.name || '',
+            role: data.role || 'farmer',
+            phoneNumber: data.phoneNumber,
+            address: data.address,
+            location: data.location,
+            farmName: data.farmName,
+            createdAt: data.createdAt?.toDate(),
+            updatedAt: data.updatedAt?.toDate(),
+          } as UserData;
+        })
+        .filter((farmer: UserData) => farmer.location); // Only include farmers with location
 
       setData(farmers);
     } catch (err) {
