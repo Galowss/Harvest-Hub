@@ -2,18 +2,21 @@
 import Link from "next/link";
 import Image from "next/image";
 
+// Note: Metadata is handled in layout.tsx for the home page
+// Additional page-specific metadata can be added in a Server Component wrapper if needed
+
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 relative overflow-hidden">
+    <main className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 relative overflow-hidden">
       {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-      <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+      <div className="absolute top-0 left-0 w-96 h-96 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" aria-hidden="true"></div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" aria-hidden="true"></div>
+      <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-teal-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000" aria-hidden="true"></div>
       
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-8 animate-fade-in-up">
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
+        <article className="text-center space-y-8 animate-fade-in-up">
           {/* Logo with subtle animation */}
-          <div className="flex justify-center mb-6">
+          <header className="flex justify-center mb-6">
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-emerald-600 rounded-full blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
               <Image
@@ -25,7 +28,7 @@ export default function Home() {
                 priority
               />
             </div>
-          </div>
+          </header>
 
           {/* Main heading with gradient text */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 bg-clip-text text-transparent leading-tight">
@@ -73,16 +76,16 @@ export default function Home() {
           </div>
 
           {/* Browse as Guest option */}
-          <div className="pt-2">
+          <nav className="pt-2">
             <Link
               href="/dashboard/user"
               className="inline-block text-gray-600 hover:text-green-700 font-medium text-sm underline transition-colors"
             >
               Or browse as guest without an account →
             </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+          </nav>
+        </article>
+      </section>
+    </main>
   );
 }
