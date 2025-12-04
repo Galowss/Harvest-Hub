@@ -34,11 +34,14 @@ export default function UserDashboard() {
     setIsClient(true);
   }, []);
 
-  // ✅ Watch auth and load user
+  // ✅ Watch auth and load user (allow guest browsing)
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       if (!currentUser) {
-        router.push("/login");
+        // Allow guest browsing - set guest user
+        setUser({ id: "guest", name: "Guest User", role: "guest" });
+        fetchProducts();
+        setLoading(false);
         return;
       }
 
@@ -172,12 +175,15 @@ export default function UserDashboard() {
     setDialogOpen(true);
   };
 
-  // ✅ Add product to cart
+  // ✅ Add product to cart (prompt guest users to sign up)
   const handleAddToCart = async (product: any) => {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        alert("Please log in to add items to cart.");
+        const shouldSignUp = confirm("Please create an account or log in to add items to cart. Would you like to sign up now?");
+        if (shouldSignUp) {
+          router.push("/signup");
+        }
         return;
       }
 
@@ -232,45 +238,71 @@ export default function UserDashboard() {
           </button>
         </div>
         
+        {/* Guest User Notice */}
+        {user?.role === "guest" && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800 font-semibold mb-2">👋 Browsing as Guest</p>
+            <p className="text-xs text-blue-700 mb-2">Create an account to purchase products!</p>
+            <a href="/signup" className="block text-center text-xs bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors">
+              Sign Up Now
+            </a>
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block space-y-2`}>
           <a href="/dashboard/user" className="block px-3 py-2 rounded bg-green-100 text-green-800 text-sm lg:text-base">
             Home
           </a>
-          <a href="/dashboard/user/cart" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
-            Cart
-          </a>
-          <a href="/dashboard/user/orders" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
-            Orders
-          </a>
-          <a href="/dashboard/user/wallet" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
-            Wallet
-          </a>
-          <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
-            Rate Farmer
-          </a>
-          <a href="/dashboard/user/profile" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
-            Profile
-          </a>
+          {user?.role !== "guest" && (
+            <>
+              <a href="/dashboard/user/cart" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
+                Cart
+              </a>
+              <a href="/dashboard/user/orders" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
+                Orders
+              </a>
+              <a href="/dashboard/user/wallet" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
+                Wallet
+              </a>
+              <a href="/dashboard/user/rate_farmer" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
+                Rate Farmer
+              </a>
+              <a href="/dashboard/user/profile" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
+                Profile
+              </a>
+            </>
+          )}
           <a href="/dashboard/community" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
             Community Hub
           </a>
-          <a href="/dashboard/map" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
-            Farmer Map
-          </a>
+          {user?.role !== "guest" && (
+            <a href="/dashboard/map" className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base">
+              Farmer Map
+            </a>
+          )}
         </nav>
         
-        {/* Logout Button */}
+        {/* Login/Logout Button */}
         <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block mt-4 pt-3 sm:pt-4 lg:pt-6 border-t border-gray-200`}>
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center lg:justify-start space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
-          >
-            <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3h4a3 3 0 013 3v1" />
-            </svg>
-            <span>Logout</span>
-          </button>
+          {user?.role === "guest" ? (
+            <a href="/login" className="flex items-center justify-center lg:justify-start space-x-2 w-full px-3 py-2 text-green-600 hover:bg-green-50 rounded transition-colors text-sm lg:text-base">
+              <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+              <span>Login / Sign Up</span>
+            </a>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center lg:justify-start space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
+            >
+              <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Logout</span>
+            </button>
+          )}
         </div>
       </aside>
 
@@ -315,7 +347,9 @@ export default function UserDashboard() {
             </div>
             
             <div className="flex items-center space-x-2 sm:space-x-4 w-full lg:w-auto">
-              <span className="font-medium text-sm lg:text-base truncate text-gray-600">Welcome, {user?.email?.split("@")[0]}!</span>
+              <span className="font-medium text-sm lg:text-base truncate text-gray-600">
+                Welcome, {user?.role === "guest" ? "Guest" : user?.email?.split("@")[0]}!
+              </span>
             </div>
           </div>
           

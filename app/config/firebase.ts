@@ -1,7 +1,7 @@
 // app/config/firebase.ts
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -24,12 +24,14 @@ export const storage = getStorage(app);
 
 // Set auth persistence to LOCAL (survives browser restarts)
 if (typeof window !== 'undefined') {
+  // Set authentication persistence
   setPersistence(auth, browserLocalPersistence).catch((error) => {
     console.error("Error setting auth persistence:", error);
   });
 
-  // Enable offline persistence for Firestore
-  enableMultiTabIndexedDbPersistence(db).catch((err) => {
+  // Enable offline persistence for Firestore with modern API
+  // Note: This uses the newer API which is more reliable
+  enableIndexedDbPersistence(db).catch((err) => {
     if (err.code === 'failed-precondition') {
       console.warn('Multiple tabs open, persistence enabled in first tab only');
     } else if (err.code === 'unimplemented') {

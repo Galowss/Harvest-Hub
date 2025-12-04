@@ -263,6 +263,16 @@ export default function SignUpFarmer() {
               Login
             </Link>
             </p>
+
+          {/* Browse as Guest Button */}
+          <Link href="/dashboard/user" className="block mt-4">
+            <button
+              type="button"
+              className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl text-sm sm:text-base font-semibold transition-all duration-200 transform hover:scale-[1.02] hover:bg-gray-200 shadow-md hover:shadow-lg border border-gray-300"
+            >
+              Browse as Guest (No Account Required)
+            </button>
+          </Link>
           </div>
         </div>
         </div>

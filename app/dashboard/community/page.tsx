@@ -66,7 +66,10 @@ export default function CommunityHubPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
-        router.push("/login");
+        // Allow guest browsing - set guest user
+        setUser({ id: "guest", name: "Guest User", role: "guest" });
+        await fetchPosts();
+        setLoading(false);
         return;
       }
 
@@ -77,7 +80,9 @@ export default function CommunityHubPage() {
         setUser({ id: currentUser.uid, ...docSnap.data() });
         await fetchPosts();
       } else {
-        router.push("/login");
+        // Allow as guest if user document doesn't exist
+        setUser({ id: "guest", name: "Guest User", role: "guest" });
+        await fetchPosts();
       }
 
       setLoading(false);
@@ -131,6 +136,15 @@ export default function CommunityHubPage() {
     e.preventDefault();
     if (!user) return;
 
+    // Check if user is guest
+    if (user.role === "guest") {
+      const shouldSignUp = confirm("Please create an account to post in the community. Would you like to sign up now?");
+      if (shouldSignUp) {
+        router.push("/signup");
+      }
+      return;
+    }
+
     try {
       const tags = newPost.tags
         .split(",")
@@ -166,6 +180,15 @@ export default function CommunityHubPage() {
   };
 
   const handleLikePost = async (postId: string) => {
+    // Check if user is guest
+    if (user?.role === "guest") {
+      const shouldSignUp = confirm("Please create an account to like posts. Would you like to sign up now?");
+      if (shouldSignUp) {
+        router.push("/signup");
+      }
+      return;
+    }
+
     try {
       const postRef = doc(db, "community_posts", postId);
       await updateDoc(postRef, {
@@ -179,6 +202,15 @@ export default function CommunityHubPage() {
 
   const handleAddComment = async () => {
     if (!user || !selectedPost || !newComment.trim()) return;
+
+    // Check if user is guest
+    if (user.role === "guest") {
+      const shouldSignUp = confirm("Please create an account to comment. Would you like to sign up now?");
+      if (shouldSignUp) {
+        router.push("/signup");
+      }
+      return;
+    }
 
     try {
       await addDoc(collection(db, "community_comments"), {
@@ -271,6 +303,17 @@ export default function CommunityHubPage() {
           </button>
         </div>
         
+        {/* Guest User Notice */}
+        {user?.role === "guest" && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800 font-semibold mb-2">👋 Browsing as Guest</p>
+            <p className="text-xs text-blue-700 mb-2">Sign up to post and comment!</p>
+            <a href="/signup" className="block text-center text-xs bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors">
+              Sign Up Now
+            </a>
+          </div>
+        )}
+
         {/* Navigation */}
         <nav className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block space-y-2`}>
           <a
@@ -319,7 +362,7 @@ export default function CommunityHubPage() {
               </a>
             </>
           )}
-          {!isFarmer && (
+          {!isFarmer && user?.role !== "guest" && (
             <>
               <a
                 href="/dashboard/user/cart"
@@ -359,28 +402,48 @@ export default function CommunityHubPage() {
           >
             Community Hub
           </a>
+          {user?.role !== "guest" && (
+            <a
+              href="/dashboard/map"
+              className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+            >
+              Farmer Map
+            </a>
+          )}
         </nav>
 
         <div className="mt-auto pt-4 lg:pt-6 border-t border-gray-200">
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
-          >
-            <svg
-              className="w-4 h-4 lg:w-5 lg:h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          {user?.role === "guest" ? (
+            <a
+              href="/login"
+              className="flex items-center space-x-2 w-full px-3 py-2 text-green-600 hover:bg-green-50 rounded transition-colors text-sm lg:text-base"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+              <span>Login / Sign Up</span>
+            </a>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 w-full px-3 py-2 text-red-600 hover:bg-red-50 rounded transition-colors text-sm lg:text-base"
+            >
+              <svg
+                className="w-4 h-4 lg:w-5 lg:h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 strokeWidth={2}
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
               />
             </svg>
             <span>Logout</span>
           </button>
+          )}
         </div>
       </aside>
 
@@ -416,12 +479,14 @@ export default function CommunityHubPage() {
               <option value="question">Questions</option>
               <option value="discussion">Discussions</option>
             </select>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap font-semibold"
-            >
-              + New Post
-            </button>
+            {user?.role !== "guest" && (
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 whitespace-nowrap font-semibold"
+              >
+                + New Post
+              </button>
+            )}
           </div>
         </section>
 

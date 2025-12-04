@@ -65,7 +65,8 @@ export default function FarmerMapPage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
-        router.push("/login");
+        // Redirect guests to user dashboard - map requires authentication
+        router.push("/dashboard/user");
         return;
       }
 
@@ -365,6 +366,12 @@ export default function FarmerMapPage() {
               >
                 Ratings
               </a>
+              <a
+                href="/dashboard/farmer/wallet"
+                className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
+              >
+                Wallet
+              </a>
             </>
           )}
           {!isFarmer && (
@@ -400,14 +407,6 @@ export default function FarmerMapPage() {
                 Profile
               </a>
             </>
-          )}
-          {isFarmer && (
-            <a
-              href="/dashboard/farmer/wallet"
-              className="block px-3 py-2 rounded hover:bg-green-100 text-sm lg:text-base"
-            >
-              Wallet
-            </a>
           )}
           <a
             href="/dashboard/community"

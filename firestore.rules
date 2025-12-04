@@ -38,8 +38,8 @@ service cloud.firestore {
 
     // 👤 USERS COLLECTION
     match /users/{userId} {
-      // Allow authenticated users to read
-      allow read: if request.auth != null;
+      // Allow anyone (including guests) to read for farmer map and profiles
+      allow read: if true;
       
       // Users can create their own profile
       allow create: if request.auth != null 
@@ -59,8 +59,8 @@ service cloud.firestore {
       // Admins can do everything
       allow read, write: if isAdminSafe();
       
-      // Allow authenticated users to read products
-      allow read: if request.auth != null;
+      // Allow ANYONE (including guests) to read products for browsing
+      allow read: if true;
       
       // Authenticated farmers can create products (simplified validation)
       allow create: if request.auth != null
@@ -148,8 +148,8 @@ service cloud.firestore {
 
     // 🌱 COMMUNITY POSTS COLLECTION
     match /community_posts/{postId} {
-      // Anyone authenticated can read posts
-      allow read: if request.auth != null;
+      // Anyone (including guests) can read posts
+      allow read: if true;
       
       // Authenticated users can create posts
       allow create: if request.auth != null
@@ -167,8 +167,8 @@ service cloud.firestore {
 
     // 💬 COMMUNITY COMMENTS COLLECTION
     match /community_comments/{commentId} {
-      // Anyone authenticated can read comments
-      allow read: if request.auth != null;
+      // Anyone (including guests) can read comments
+      allow read: if true;
       
       // Authenticated users can create comments
       allow create: if request.auth != null

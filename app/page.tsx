@@ -71,6 +71,16 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-r from-green-50 to-emerald-50 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
             </Link>
           </div>
+
+          {/* Browse as Guest option */}
+          <div className="pt-2">
+            <Link
+              href="/dashboard/user"
+              className="inline-block text-gray-600 hover:text-green-700 font-medium text-sm underline transition-colors"
+            >
+              Or browse as guest without an account →
+            </Link>
+          </div>
         </div>
       </div>
     </div>

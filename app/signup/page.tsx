@@ -235,6 +235,16 @@ export default function SignUpUser() {
           ) : "Sign Up"}
             </button>
 
+            {/* Browse as Guest Button */}
+            <Link href="/dashboard/user">
+              <button
+                type="button"
+                className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl text-sm sm:text-base font-semibold transition-all duration-200 transform hover:scale-[1.02] hover:bg-gray-200 shadow-md hover:shadow-lg mt-4 border border-gray-300"
+              >
+                Browse as Guest (No Account Required)
+              </button>
+            </Link>
+
             <div className="text-center mt-6 pt-6 border-t border-gray-200 space-y-2">
           <p className="text-xs sm:text-sm text-gray-600">
             Want to be a farmer?{" "}
