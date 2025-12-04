@@ -5,8 +5,8 @@
  * to reduce initial bundle size and improve page load performance.
  */
 
+import React, { ComponentType, Suspense, ReactNode } from 'react';
 import dynamic from 'next/dynamic';
-import { ComponentType, Suspense, ReactNode } from 'react';
 
 /**
  * Loading fallback component
@@ -237,6 +237,3 @@ export function useLazyLoad(
 
   return { isVisible };
 }
-
-// Re-export React for the hook
-import React from 'react';
