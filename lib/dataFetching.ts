@@ -138,8 +138,8 @@ export async function fetchWithRetry<T>(
  */
 export async function fetchParallel<T extends readonly unknown[]>(
   ...fetchers: Array<() => Promise<T[number]>>
-): Promise<T> {
-  return Promise.all(fetchers.map(fetcher => fetcher())) as Promise<T>;
+): Promise<Awaited<T[number]>[]> {
+  return Promise.all(fetchers.map(fetcher => fetcher()));
 }
 
 /**
