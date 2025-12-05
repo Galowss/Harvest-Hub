@@ -250,14 +250,15 @@ export default function UserDashboard() {
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-gradient-to-br from-gray-50 via-green-50 to-emerald-50">
       {/* Sidebar */}
-      <aside className="w-full lg:w-64 bg-white/80 backdrop-blur-sm shadow-xl border-r border-green-100 p-3 sm:p-4 lg:h-screen overflow-y-auto">
-        <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
-          <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-            <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-8 h-8" />
-            HarvestHub
-          </h2>
-          {/* Mobile Menu Toggle */}
-          <button
+      <aside className="w-full lg:w-64 bg-white/80 backdrop-blur-sm shadow-xl border-r border-green-100 lg:h-screen flex flex-col">
+        <div className="p-3 sm:p-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3 sm:mb-4 lg:mb-6">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
+              <img src="/harvest-hub-logo.png" alt="HarvestHub Logo" className="w-8 h-8" />
+              HarvestHub
+            </h2>
+            {/* Mobile Menu Toggle */}
+            <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
             aria-label="Toggle menu"
@@ -270,21 +271,23 @@ export default function UserDashboard() {
               )}
             </svg>
           </button>
-        </div>
-        
-        {/* Guest User Notice */}
-        {user?.role === "guest" && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-800 font-semibold mb-2">👋 Browsing as Guest</p>
-            <p className="text-xs text-blue-700 mb-2">Create an account to purchase products!</p>
-            <a href="/signup" className="block text-center text-xs bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors">
-              Sign Up Now
-            </a>
           </div>
-        )}
+          
+          {/* Guest User Notice */}
+          {user?.role === "guest" && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs text-blue-800 font-semibold mb-2">👋 Browsing as Guest</p>
+              <p className="text-xs text-blue-700 mb-2">Create an account to purchase products!</p>
+              <a href="/signup" className="block text-center text-xs bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors">
+                Sign Up Now
+              </a>
+            </div>
+          )}
+        </div>
 
-        {/* Navigation */}
-        <nav className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block space-y-2`}>
+        {/* Scrollable Navigation */}
+        <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block flex-1 overflow-y-auto px-3 sm:px-4`}>
+          <nav className="space-y-2"
           <a href="/dashboard/user" className="block px-3 py-2 rounded bg-green-100 text-green-800 text-sm lg:text-base">
             Home
           </a>
@@ -315,10 +318,11 @@ export default function UserDashboard() {
               Farmer Map
             </a>
           )}
-        </nav>
+          </nav>
+        </div>
         
-        {/* Login/Logout Button */}
-        <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block mt-4 pt-3 sm:pt-4 lg:pt-6 border-t border-gray-200`}>
+        {/* Login/Logout Button - Fixed at bottom */}
+        <div className={`${mobileMenuOpen ? 'block' : 'hidden'} lg:block flex-shrink-0 p-3 sm:p-4 border-t border-gray-200 bg-white`}>
           {user?.role === "guest" ? (
             <a href="/login" className="flex items-center justify-center lg:justify-start space-x-2 w-full px-3 py-2 text-green-600 hover:bg-green-50 rounded transition-colors text-sm lg:text-base">
               <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
