@@ -63,30 +63,18 @@ export default function UserDashboard() {
   }, [router]);
 
   // ✅ Fetch only available farmer products (stock > 0)
-  const fetchProducts = async (skipCache = false) => {
+  const fetchProducts = async (skipCache = true) => {
     setFetchingProducts(true);
     try {
-      // Try cache first (unless skipCache is true)
-      const cacheKey = CacheClient.productsListKey();
-      const cached = !skipCache ? await CacheClient.get(cacheKey) : null;
+      // TEMPORARILY DISABLED CACHE - Direct Firestore fetch for debugging
+      console.log('🔍 Fetching products directly from Firestore (cache disabled)...');
+      const querySnapshot = await getDocs(collection(db, "products"));
+      const allProductsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       
-      let allProductsData;
-      if (cached) {
-        console.log('✅ Products loaded from cache - saved Firebase read!');
-        allProductsData = cached;
-      } else {
-        console.log('⚠️ Cache miss - fetching from Firestore');
-        const querySnapshot = await getDocs(collection(db, "products"));
-        allProductsData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        
-        console.log(`📦 Fetched ${allProductsData.length} total products from Firestore`);
-        
-        // Store in cache for 1 hour
-        await CacheClient.set(cacheKey, allProductsData, 3600);
-      }
+      console.log(`📦 Fetched ${allProductsData.length} total products from Firestore`);
       
       // Log all products before filtering
       console.log('📊 All products fetched:', allProductsData.map((p: any) => ({
