@@ -63,18 +63,46 @@ export default function UserDashboard() {
   }, [router]);
 
   // ✅ Fetch only available farmer products (stock > 0)
-  const fetchProducts = async (skipCache = true) => {
+  const fetchProducts = async (skipCache = false) => {
     setFetchingProducts(true);
     try {
-      // TEMPORARILY DISABLED CACHE - Direct Firestore fetch for debugging
-      console.log('🔍 Fetching products directly from Firestore (cache disabled)...');
-      const querySnapshot = await getDocs(collection(db, "products"));
-      const allProductsData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      let allProductsData;
       
-      console.log(`📦 Fetched ${allProductsData.length} total products from Firestore`);
+      // Try Redis cache first (unless skipCache is true)
+      if (!skipCache) {
+        try {
+          const cacheKey = CacheClient.productsListKey();
+          const cached = await CacheClient.get(cacheKey);
+          
+          if (cached && Array.isArray(cached) && cached.length > 0) {
+            console.log('✅ Products loaded from Redis cache - saved Firebase read!');
+            allProductsData = cached;
+          }
+        } catch (cacheError) {
+          console.warn('⚠️ Cache error, falling back to Firestore:', cacheError);
+        }
+      }
+      
+      // Fetch from Firestore if cache miss or skipCache
+      if (!allProductsData) {
+        console.log('🔍 Fetching products from Firestore...');
+        const querySnapshot = await getDocs(collection(db, "products"));
+        allProductsData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        
+        console.log(`📦 Fetched ${allProductsData.length} total products from Firestore`);
+        
+        // Store in Redis cache for 5 minutes (300 seconds)
+        try {
+          const cacheKey = CacheClient.productsListKey();
+          await CacheClient.set(cacheKey, allProductsData, 300);
+          console.log('💾 Products cached in Redis for 5 minutes');
+        } catch (cacheError) {
+          console.warn('⚠️ Failed to cache products:', cacheError);
+        }
+      }
       
       // Log all products before filtering
       console.log('📊 All products fetched:', allProductsData.map((p: any) => ({
