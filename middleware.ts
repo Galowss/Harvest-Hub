@@ -29,43 +29,9 @@ const roleBasedRoutes: Record<string, string[]> = {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Get authentication token from cookies
-  const authToken = request.cookies.get('authToken')?.value;
-  const userRole = request.cookies.get('userRole')?.value;
-  
-  // Check if the route is protected
-  const isProtectedRoute = protectedRoutes.some(route => 
-    pathname.startsWith(route)
-  );
-  
-  const isPublicRoute = publicRoutes.some(route => 
-    pathname === route || pathname.startsWith(route)
-  );
-
-  // Redirect unauthenticated users from protected routes to login
-  if (isProtectedRoute && !authToken) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Redirect authenticated users from login/signup to their dashboard
-  if ((pathname === '/login' || pathname === '/signup') && authToken) {
-    const dashboardUrl = getDashboardByRole(userRole);
-    return NextResponse.redirect(new URL(dashboardUrl, request.url));
-  }
-
-  // Role-based access control
-  if (isProtectedRoute && authToken && userRole) {
-    const allowedRoutes = roleBasedRoutes[userRole] || [];
-    const hasAccess = allowedRoutes.some(route => pathname.startsWith(route));
-    
-    if (!hasAccess && !pathname.startsWith('/dashboard/community') && !pathname.startsWith('/dashboard/map')) {
-      // Redirect to appropriate dashboard if accessing unauthorized route
-      const dashboardUrl = getDashboardByRole(userRole);
-      return NextResponse.redirect(new URL(dashboardUrl, request.url));
-    }
-  }
+  // TEMPORARILY DISABLED - Firebase Auth doesn't use cookies by default
+  // The app handles auth client-side with Firebase
+  // TODO: Implement proper Firebase auth token validation in middleware
 
   // Add security headers
   const response = NextResponse.next();
