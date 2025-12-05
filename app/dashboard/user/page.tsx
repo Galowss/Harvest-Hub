@@ -63,12 +63,12 @@ export default function UserDashboard() {
   }, [router]);
 
   // ✅ Fetch only available farmer products (stock > 0)
-  const fetchProducts = async () => {
+  const fetchProducts = async (skipCache = false) => {
     setFetchingProducts(true);
     try {
-      // Try cache first
+      // Try cache first (unless skipCache is true)
       const cacheKey = CacheClient.productsListKey();
-      const cached = await CacheClient.get(cacheKey);
+      const cached = !skipCache ? await CacheClient.get(cacheKey) : null;
       
       let allProductsData;
       if (cached) {
@@ -82,14 +82,31 @@ export default function UserDashboard() {
           ...doc.data(),
         }));
         
+        console.log(`📦 Fetched ${allProductsData.length} total products from Firestore`);
+        
         // Store in cache for 1 hour
         await CacheClient.set(cacheKey, allProductsData, 3600);
       }
       
-      // Filter only products with stock > 0 (available produce)
+      // Log all products before filtering
+      console.log('📊 All products fetched:', allProductsData.map((p: any) => ({
+        name: p.name,
+        stock: p.stock,
+        quantity: p.quantity,
+        archived: p.archived
+      })));
+      
+      // Filter only products with stock > 0 and not archived
       const availableProducts = allProductsData.filter((product: any) => {
         const stock = product.stock || product.quantity || 0;
-        return stock > 0;
+        const isArchived = product.archived === true;
+        const isAvailable = stock > 0 && !isArchived;
+        
+        if (!isAvailable) {
+          console.log(`❌ Filtered out: ${product.name} (stock: ${stock}, archived: ${isArchived})`);
+        }
+        
+        return isAvailable;
       });
       
       // Log a sample product to check image structure
@@ -163,9 +180,10 @@ export default function UserDashboard() {
     return [...new Set(categories)];
   };
 
-  // ✅ Refresh products manually
+  // ✅ Refresh products manually (bypass cache)
   const handleRefresh = async () => {
-    await fetchProducts();
+    console.log('🔄 Forcing refresh from Firestore...');
+    await fetchProducts(true); // Skip cache
   };
 
   // ✅ View details & open dialog
